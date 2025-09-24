@@ -1,6 +1,6 @@
 // Assessment TypeScript definitions for Digital Maturity Assessment (DMA)
 
-export type QuestionType = 'checkboxes' | 'dual-checkboxes' | 'scale-0-5' | 'tri-state';
+export type QuestionType = 'checkboxes' | 'dual-checkboxes' | 'scale-0-5' | 'tri-state' | 'table-dual-checkboxes' | 'scale-table' | 'tri-state-table';
 
 export interface Dimension {
   id: string;            // e.g., 'strategy'
@@ -56,11 +56,35 @@ export interface TriStateQuestion extends BaseQuestion {
   triLabels?: { yes: string; partial: string; no: string }; // localized keys
 }
 
+export interface TableDualCheckboxesQuestion extends BaseQuestion {
+  type: 'table-dual-checkboxes';
+  rows: { id: string; label: string }[];
+  columns: {
+    left: { id: string; label: string; weight?: number };
+    right: { id: string; label: string; weight?: number };
+  };
+}
+
+export interface ScaleTableQuestion extends BaseQuestion {
+  type: 'scale-table';
+  rows: { id: string; label: string }[];
+  scaleLabels: string[]; // localized keys for 0-5 scale
+}
+
+export interface TriStateTableQuestion extends BaseQuestion {
+  type: 'tri-state-table';
+  rows: { id: string; label: string }[];
+  triLabels: { yes: string; partial: string; no: string }; // localized keys
+}
+
 export type Question =
   | CheckboxesQuestion
   | DualCheckboxesQuestion
   | ScaleQuestion
-  | TriStateQuestion;
+  | TriStateQuestion
+  | TableDualCheckboxesQuestion
+  | ScaleTableQuestion
+  | TriStateTableQuestion;
 
 export interface AssessmentSpec {
   version: string;
@@ -74,29 +98,32 @@ export type Answer =
   | { type: 'checkboxes'; selected: string[] }
   | { type: 'dual-checkboxes'; left: boolean; right: boolean }
   | { type: 'scale-0-5'; value: number } // 0..5
-  | { type: 'tri-state'; value: 'yes' | 'partial' | 'no' };
+  | { type: 'tri-state'; value: 'yes' | 'partial' | 'no' }
+  | { type: 'table-dual-checkboxes'; rows: Record<string, { left: boolean; right: boolean }> }
+  | { type: 'scale-table'; rows: Record<string, number> } // rowId -> scale value 0-5
+  | { type: 'tri-state-table'; rows: Record<string, 'yes' | 'partial' | 'no'> };
 
 export type AnswerMap = Record<string, Answer>; // questionId -> answer
 
 // Scoring and results types
 export interface DimensionScore {
   id: string;
-  score: number;    // 0..1
-  target: number;   // 0..1
-  gap: number;      // 0..1
+  score: number;    // 0-100
+  target: number;   // 0-100
+  gap: number;      // 0-100
   weight: number;
 }
 
 export interface MaturityBand {
-  min: number;      // 0..1
-  max: number;      // 0..1
+  min: number;      // 0-100
+  max: number;      // 0-100
   labelKey: string; // localization key
-  level: number;    // 1-5
+  level: number;    // 1-4
 }
 
 export interface AssessmentResults {
   dimensions: DimensionScore[];
-  overall: number;              // 0..1
+  overall: number;              // 0-100
   classification: MaturityBand;
 }
 

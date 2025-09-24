@@ -1,7 +1,12 @@
 {
+  "app": {
+    "title": "Digital Maturity Assessment",
+    "subtitle": "Digital maturity assessment for SMEs",
+    "description": "A tool to assess and improve the digital maturity of small and medium-sized enterprises based on the EU/JRC framework."
+  },
   "ui": {
     "yes": "Yes",
-    "partial": "Partial",
+    "partial": "Partially",
     "no": "No",
     "next": "Next",
     "previous": "Previous",
@@ -9,15 +14,28 @@
     "export": "Export",
     "save": "Save",
     "cancel": "Cancel",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
     "continue": "Continue",
+    "back": "Back",
     "startAssessment": "Start Assessment",
     "viewResults": "View Results",
     "downloadResults": "Download Results",
-    "resetAssessment": "Reset Assessment",
+    "resetAssessment": "Start Over",
     "progress": "Progress",
     "completed": "Completed",
     "required": "Required",
-    "optional": "Optional"
+    "answered": "Answered",
+    "optional": "Optional",
+    "download": "Download",
+    "share": "Share",
+    "restart": "Restart",
+    "scale": {
+      "min": "Not at all",
+      "max": "To a great extent"
+    }
   },
   "navigation": {
     "home": "Home",
@@ -38,29 +56,114 @@
     "level2": "Average",
     "level3": "Moderately Advanced",
     "level4": "Advanced",
-    "level5": "Expert"
+    "classification": {
+      "title": "Maturity Level",
+      "description": "Your business digital maturity classification"
+    }
   },
   "assessment": {
     "title": "Digital Maturity Assessment",
-    "description": "Assess your company's digital maturity based on the EU/JRC framework",
-    "progress": "Progress: {{current}} of {{total}} questions",
+    "subtitle": "Answer the questions below to assess your business digital maturity",
+    "description": "Assess your business digital maturity based on the EU/JRC framework",
+    "progress": "Progress",
+    "question_of": "Question {{current}} of {{total}}",
+    "dimension": "Dimension: {{name}}",
     "completionMessage": "Congratulations! You have completed the assessment.",
-    "incompleteMessage": "Please answer all required questions before proceeding."
+    "incompleteMessage": "Please answer all required questions before continuing.",
+    "validation": {
+      "required_missing": "Please answer all required questions",
+      "min_selections": "Select at least {{count}} options",
+      "max_selections": "Select at most {{count}} options"
+    }
   },
   "results": {
-    "title": "Your Results",
+    "title": "Assessment Results",
+    "subtitle": "Your digital maturity report",
     "overallScore": "Overall Score",
+    "overall_score": "Overall Score",
     "maturityLevel": "Maturity Level",
     "dimensions": "Dimensions",
-    "gaps": "Areas for Improvement",
+    "dimension_scores": "Dimension Scores",
+    "gaps": "Improvement Areas",
+    "gap_analysis": "Gap Analysis",
+    "improvement_areas": "Improvement Areas",
     "recommendations": "Recommendations",
     "exportSuccess": "Results exported successfully!",
-    "chartTitle": "Digital Maturity - Radar Overview"
+    "export_data": "Export Data",
+    "export_summary": "Export Summary",
+    "chartTitle": "Digital maturity - radar overview",
+    "chart_title": "Digital Maturity Radar",
+    "chart_current": "Current Level",
+    "chart_target": "Target Level"
+  },
+  "q": {
+    "Q1": {
+      "title": "Has your business defined a clear digital strategy?",
+      "desc": "A digital strategy describes how technology should be used to achieve business objectives."
+    },
+    "Q2": {
+      "title": "To what extent is the digital strategy integrated with the overall business strategy?",
+      "desc": "Assess how well the digital strategy is coordinated with the company's main goals and processes."
+    },
+    "Q3": {
+      "title": "Which areas does your business digital readiness encompass?",
+      "desc": "Digital readiness includes technical, organizational, and human resources for digital transformation.",
+      "a": "IT infrastructure and security",
+      "b": "Digital skills and training",
+      "c": "Digitized business processes"
+    },
+    "Q4": {
+      "title": "Does your business have a plan for digital competence development?",
+      "desc": "Systematic development of digital skills among employees."
+    },
+    "Q5": {
+      "title": "Human-centric digitalization in the business:",
+      "desc": "How are employees and customers involved in the digitalization process?",
+      "left": "Employees are actively involved in designing digital solutions",
+      "right": "Customer needs and feedback drive digital development"
+    },
+    "Q6": {
+      "title": "To what extent are digital tools used to improve customer experience?",
+      "desc": "Assess the use of digital solutions for customer interaction and service."
+    },
+    "Q7": {
+      "title": "Which data management practices has the business implemented?",
+      "desc": "Systematic handling and analysis of business data.",
+      "a": "Structured data collection and storage",
+      "b": "Data analysis and insights"
+    },
+    "Q8": {
+      "title": "Does the business have access to high-speed internet connection?",
+      "desc": "Reliable and fast internet connection is fundamental for digital operations."
+    },
+    "Q9": {
+      "title": "To what extent does the business use automation in its processes?",
+      "desc": "Automation of routine tasks and business processes."
+    },
+    "Q10": {
+      "title": "Which AI technologies does the business consider or use?",
+      "desc": "Artificial intelligence and machine learning for business improvement.",
+      "a": "Chatbots and customer service AI",
+      "b": "Predictive analysis and data insights",
+      "c": "Intelligent process automation"
+    },
+    "Q11": {
+      "title": "Has the business implemented environmentally friendly digital practices?",
+      "desc": "Use of digital solutions to reduce environmental impact and support sustainability."
+    }
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
-    "validation": "Please check your answers and try again.",
-    "export": "Could not export results. Please try again.",
+    "network": "Network error. Check your connection.",
+    "validation": "Validation error. Check your answers.",
+    "export": "Could not export data. Try again.",
+    "save": "Could not save progress. Try again.",
+    "load": "Could not load previous progress.",
     "required": "This field is required"
+  },
+  "success": {
+    "saved": "Progress saved",
+    "exported": "Data exported successfully",
+    "completed": "Assessment completed"
   }
 }

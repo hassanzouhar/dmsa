@@ -2,24 +2,26 @@ import { MaturityBand, DimensionScore } from '@/src/types/assessment';
 
 /**
  * Default maturity classification bands
- * Based on EU/JRC Digital Maturity Assessment levels
+ * Based on EU/JRC Digital Maturity Assessment levels (0-100 scale)
  */
 export const defaultMaturityBands: MaturityBand[] = [
-  { min: 0.00, max: 0.20, labelKey: 'maturity.level1', level: 1 }, // Basic
-  { min: 0.20, max: 0.40, labelKey: 'maturity.level2', level: 2 }, // Average
-  { min: 0.40, max: 0.60, labelKey: 'maturity.level3', level: 3 }, // Moderately Advanced
-  { min: 0.60, max: 0.80, labelKey: 'maturity.level4', level: 4 }, // Advanced
-  { min: 0.80, max: 1.01, labelKey: 'maturity.level5', level: 5 }, // Expert
+  { min: 0, max: 25, labelKey: 'maturity.level1', level: 1 },   // Basic
+  { min: 26, max: 50, labelKey: 'maturity.level2', level: 2 },  // Average
+  { min: 51, max: 75, labelKey: 'maturity.level3', level: 3 },  // Moderately Advanced
+  { min: 76, max: 100, labelKey: 'maturity.level4', level: 4 }, // Advanced
 ];
 
 /**
  * Classify a score into a maturity band
- * @param score - Normalized score (0..1)
+ * @param score - Score (0-100)
  * @param bands - Custom maturity bands (optional)
  * @returns Matching maturity band
  */
 export function classify(score: number, bands: MaturityBand[] = defaultMaturityBands): MaturityBand {
-  const matchingBand = bands.find(band => score >= band.min && score < band.max);
+  // Ensure score is in valid range
+  const normalizedScore = Math.max(0, Math.min(100, score));
+  
+  const matchingBand = bands.find(band => normalizedScore >= band.min && normalizedScore <= band.max);
   return matchingBand ?? bands[bands.length - 1]; // Fallback to highest band
 }
 
@@ -34,10 +36,11 @@ export function analyzeGaps(dimensionScores: DimensionScore[]): {
   minorGaps: DimensionScore[];
   strengths: DimensionScore[];
 } {
-  const criticalGaps = dimensionScores.filter(dim => dim.gap > 0.4);
-  const moderateGaps = dimensionScores.filter(dim => dim.gap > 0.2 && dim.gap <= 0.4);
-  const minorGaps = dimensionScores.filter(dim => dim.gap > 0.1 && dim.gap <= 0.2);
-  const strengths = dimensionScores.filter(dim => dim.gap <= 0.1);
+  // Updated thresholds for 0-100 scale
+  const criticalGaps = dimensionScores.filter(dim => dim.gap > 40);
+  const moderateGaps = dimensionScores.filter(dim => dim.gap > 20 && dim.gap <= 40);
+  const minorGaps = dimensionScores.filter(dim => dim.gap > 10 && dim.gap <= 20);
+  const strengths = dimensionScores.filter(dim => dim.gap <= 10);
 
   return {
     criticalGaps: criticalGaps.sort((a, b) => b.gap - a.gap),
@@ -60,10 +63,10 @@ export function generateImprovementPriorities(dimensionScores: DimensionScore[])
   target: number;
 }[] {
   return dimensionScores
-    .filter(dim => dim.gap > 0.05) // Only include meaningful gaps
+    .filter(dim => dim.gap > 5) // Only include meaningful gaps (5+ points on 0-100 scale)
     .map(dim => ({
-      priority: dim.gap > 0.4 ? 'critical' as const : 
-                dim.gap > 0.2 ? 'moderate' as const : 'minor' as const,
+      priority: dim.gap > 40 ? 'critical' as const : 
+                dim.gap > 20 ? 'moderate' as const : 'minor' as const,
       dimensionId: dim.id,
       gap: dim.gap,
       score: dim.score,
@@ -82,8 +85,8 @@ export function generateImprovementPriorities(dimensionScores: DimensionScore[])
 /**
  * Calculate maturity progression
  * Useful for showing advancement from one level to another
- * @param currentScore - Current normalized score (0..1)
- * @param targetScore - Target normalized score (0..1)
+ * @param currentScore - Current score (0-100)
+ * @param targetScore - Target score (0-100)
  * @param bands - Maturity bands to use
  * @returns Progression analysis
  */

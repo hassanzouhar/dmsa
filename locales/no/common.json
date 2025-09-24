@@ -1,4 +1,9 @@
 {
+  "app": {
+    "title": "Digital Modenhetsvurdering",
+    "subtitle": "Vurdering av digital modenhet for SMB",
+    "description": "Et verktøy for å vurdere og forbedre den digitale modenheten til små og mellomstore bedrifter basert på EU/JRC-rammeverket."
+  },
   "ui": {
     "yes": "Ja",
     "partial": "Delvis",
@@ -9,7 +14,12 @@
     "export": "Eksporter",
     "save": "Lagre",
     "cancel": "Avbryt",
+    "close": "Lukk",
+    "loading": "Laster...",
+    "error": "Feil",
+    "success": "Vellykket",
     "continue": "Fortsett",
+    "back": "Tilbake",
     "startAssessment": "Start vurdering",
     "viewResults": "Se resultater",
     "downloadResults": "Last ned resultater",
@@ -17,7 +27,15 @@
     "progress": "Fremgang",
     "completed": "Fullført",
     "required": "Påkrevd",
-    "optional": "Valgfri"
+    "answered": "Besvart",
+    "optional": "Valgfri",
+    "download": "Last ned",
+    "share": "Del",
+    "restart": "Start på nytt",
+    "scale": {
+      "min": "Ikke i det hele tatt",
+      "max": "I meget stor grad"
+    }
   },
   "navigation": {
     "home": "Hjem",
@@ -38,29 +56,114 @@
     "level2": "Gjennomsnittlig",
     "level3": "Moderat avansert",
     "level4": "Avansert",
-    "level5": "Ekspert"
+    "classification": {
+      "title": "Modenhetsnivå",
+      "description": "Din bedrifts digitale modenhetsklassifisering"
+    }
   },
   "assessment": {
     "title": "Digital modenhetsvurdering",
+    "subtitle": "Svar på spørsmålene nedenfor for å vurdere din bedrifts digitale modenhet",
     "description": "Vurder din bedrifts digitale modenhet basert på EU/JRC-rammeverket",
-    "progress": "Fremgang: {{current}} av {{total}} spørsmål",
+    "progress": "Fremgang",
+    "question_of": "Spørsmål {{current}} av {{total}}",
+    "dimension": "Dimensjon: {{name}}",
     "completionMessage": "Gratulerer! Du har fullført vurderingen.",
-    "incompleteMessage": "Vennligst svar på alle påkrevde spørsmål før du fortsetter."
+    "incompleteMessage": "Vennligst svar på alle påkrevde spørsmål før du fortsetter.",
+    "validation": {
+      "required_missing": "Vennligst svar på alle påkrevde spørsmål",
+      "min_selections": "Velg minst {{count}} alternativer",
+      "max_selections": "Velg maksimalt {{count}} alternativer"
+    }
   },
   "results": {
-    "title": "Dine resultater",
+    "title": "Vurderingsresultater",
+    "subtitle": "Din digitale modenhetsrapport",
     "overallScore": "Samlet poengsum",
+    "overall_score": "Samlet poengsum",
     "maturityLevel": "Modenhetsnivå",
     "dimensions": "Dimensjoner",
+    "dimension_scores": "Dimensjonspoeng",
     "gaps": "Forbedingsområder",
+    "gap_analysis": "Gapanalyse",
+    "improvement_areas": "Forbedringsområder",
     "recommendations": "Anbefalinger",
     "exportSuccess": "Resultater eksportert vellykket!",
-    "chartTitle": "Digital modenhet - radar oversikt"
+    "export_data": "Eksporter data",
+    "export_summary": "Eksporter sammendrag",
+    "chartTitle": "Digital modenhet - radar oversikt",
+    "chart_title": "Digital Modenhetsradar",
+    "chart_current": "Nåværende nivå",
+    "chart_target": "Målnivå"
+  },
+  "q": {
+    "Q1": {
+      "title": "Har bedriften din definert en tydelig digital strategi?",
+      "desc": "En digital strategi beskriver hvordan teknologi skal brukes for å oppnå forretningsmålene."
+    },
+    "Q2": {
+      "title": "I hvor stor grad er den digitale strategien integrert i den overordnede forretningsstrategien?",
+      "desc": "Vurder hvor godt den digitale strategien er koordinert med bedriftens hovedmål og prosesser."
+    },
+    "Q3": {
+      "title": "Hvilke områder omfatter bedriftens digitale beredskap?",
+      "desc": "Digital beredskap inkluderer tekniske, organisatoriske og menneskelige ressurser for digital transformasjon.",
+      "a": "IT-infrastruktur og sikkerhet",
+      "b": "Digitale ferdigheter og opplæring",
+      "c": "Digitaliserte forretningsprosesser"
+    },
+    "Q4": {
+      "title": "Har bedriften din en plan for digital kompetanseutvikling?",
+      "desc": "Systematisk utvikling av digitale ferdigheter blant ansatte."
+    },
+    "Q5": {
+      "title": "Menneskesentrert digitalisering i bedriften:",
+      "desc": "Hvordan involveres ansatte og kunder i digitaliseringsprosessen?",
+      "left": "Ansatte involveres aktivt i utformingen av digitale løsninger",
+      "right": "Kundenes behov og tilbakemeldinger styrer digital utvikling"
+    },
+    "Q6": {
+      "title": "I hvor stor grad brukes digitale verktøy for å forbedre kundeopplevelsen?",
+      "desc": "Vurder bruken av digitale løsninger for kunde-interaksjon og service."
+    },
+    "Q7": {
+      "title": "Hvilke dataforvaltningspraksis har bedriften implementert?",
+      "desc": "Systematisk håndtering og analyse av forretningsdata.",
+      "a": "Strukturert datainnsamling og lagring",
+      "b": "Dataanalyse og innsikt"
+    },
+    "Q8": {
+      "title": "Har bedriften tilgang til høyhastighets internettforbindelse?",
+      "desc": "Pålitelig og rask internettilkobling er grunnleggende for digital drift."
+    },
+    "Q9": {
+      "title": "I hvor stor grad bruker bedriften automatisering i sine prosesser?",
+      "desc": "Automatisering av rutineoppgaver og forretningsprosesser."
+    },
+    "Q10": {
+      "title": "Hvilke AI-teknologier vurderer eller bruker bedriften?",
+      "desc": "Kunstig intelligens og maskinlæring for forretningsforbedring.",
+      "a": "Chatbots og kundeservice-AI",
+      "b": "Prediktiv analyse og datainnseekter",
+      "c": "Intelligent prosessautomatisering"
+    },
+    "Q11": {
+      "title": "Har bedriften implementert miljøvennlige digitale praksiser?",
+      "desc": "Bruk av digitale løsninger for å redusere miljøpåvirkning og støtte bærekraft."
+    }
   },
   "errors": {
     "generic": "Noe gikk galt. Vennligst prøv igjen.",
-    "validation": "Vennligst sjekk dine svar og prøv igjen.",
-    "export": "Kunne ikke eksportere resultater. Prøv igjen.",
+    "network": "Nettverksfeil. Kontroller tilkoblingen din.",
+    "validation": "Valideringsfeil. Kontroller dine svar.",
+    "export": "Kunne ikke eksportere data. Prøv igjen.",
+    "save": "Kunne ikke lagre fremgang. Prøv igjen.",
+    "load": "Kunne ikke laste tidligere fremgang.",
     "required": "Dette feltet er påkrevd"
+  },
+  "success": {
+    "saved": "Fremgang lagret",
+    "exported": "Data eksportert vellykket",
+    "completed": "Vurdering fullført"
   }
 }

@@ -2,7 +2,7 @@ import { AssessmentSpec, Question, Answer, AnswerMap, DimensionScore } from '@/s
 
 /**
  * Score a checkboxes question
- * Returns normalized score (0..1) based on weighted selected options
+ * Returns normalized score (0-10) based on weighted selected options
  */
 function scoreCheckboxes(q: Extract<Question, { type: 'checkboxes' }>, a: Answer): number {
   const ans = a as Extract<Answer, { type: 'checkboxes' }>;
@@ -13,12 +13,13 @@ function scoreCheckboxes(q: Extract<Question, { type: 'checkboxes' }>, a: Answer
   
   // Check minimum selection requirement
   const minOk = q.minSelect ? ans.selected.length >= q.minSelect : true;
-  return minOk && total > 0 ? selectedSum / total : 0;
+  const normalizedScore = minOk && total > 0 ? selectedSum / total : 0;
+  return normalizedScore * 10; // Scale to 0-10
 }
 
 /**
  * Score a dual-checkboxes question
- * Returns normalized score (0..1) based on both checkbox states
+ * Returns normalized score (0-10) based on both checkbox states
  */
 function scoreDualCheckboxes(q: Extract<Question, { type: 'dual-checkboxes' }>, a: Answer): number {
   const ans = a as Extract<Answer, { type: 'dual-checkboxes' }>;
@@ -26,32 +27,102 @@ function scoreDualCheckboxes(q: Extract<Question, { type: 'dual-checkboxes' }>, 
   const rw = q.options.right.weight ?? 1;
   const max = lw + rw;
   const val = (ans.left ? lw : 0) + (ans.right ? rw : 0);
-  return max > 0 ? val / max : 0;
+  const normalizedScore = max > 0 ? val / max : 0;
+  return normalizedScore * 10; // Scale to 0-10
 }
 
 /**
  * Score a 0-5 scale question
- * Returns normalized score (0..1)
+ * Returns normalized score (0-10)
  */
 function scoreScale05(q: Extract<Question, { type: 'scale-0-5' }>, a: Answer): number {
   const ans = a as Extract<Answer, { type: 'scale-0-5' }>;
   const value = Math.max(0, Math.min(5, ans.value));
-  return value / 5;
+  return (value / 5) * 10; // Scale to 0-10
 }
 
 /**
  * Score a tri-state question (Yes/Partial/No)
- * Returns normalized score (0..1)
+ * Returns normalized score (0-10)
  */
 function scoreTriState(q: Extract<Question, { type: 'tri-state' }>, a: Answer): number {
   const ans = a as Extract<Answer, { type: 'tri-state' }>;
   const map = { yes: 1, partial: 0.5, no: 0 } as const;
-  return map[ans.value];
+  return map[ans.value] * 10; // Scale to 0-10
+}
+
+/**
+ * Score a table-dual-checkboxes question
+ * Returns normalized score (0-10) based on all row selections
+ */
+function scoreTableDualCheckboxes(q: Extract<Question, { type: 'table-dual-checkboxes' }>, a: Answer): number {
+  const ans = a as Extract<Answer, { type: 'table-dual-checkboxes' }>;
+  const lw = q.columns.left.weight ?? 1;
+  const rw = q.columns.right.weight ?? 1;
+  const maxPerRow = lw + rw;
+  
+  let totalPossible = q.rows.length * maxPerRow;
+  let totalAchieved = 0;
+  
+  for (const row of q.rows) {
+    const rowAnswer = ans.rows[row.id];
+    if (rowAnswer) {
+      totalAchieved += (rowAnswer.left ? lw : 0) + (rowAnswer.right ? rw : 0);
+    }
+  }
+  
+  const normalizedScore = totalPossible > 0 ? totalAchieved / totalPossible : 0;
+  return normalizedScore * 10; // Scale to 0-10
+}
+
+/**
+ * Score a scale-table question
+ * Returns normalized score (0-10) based on average of all row scales
+ */
+function scoreScaleTable(q: Extract<Question, { type: 'scale-table' }>, a: Answer): number {
+  const ans = a as Extract<Answer, { type: 'scale-table' }>;
+  
+  let totalScore = 0;
+  let rowsAnswered = 0;
+  
+  for (const row of q.rows) {
+    const rowValue = ans.rows[row.id];
+    if (rowValue !== undefined) {
+      totalScore += Math.max(0, Math.min(5, rowValue));
+      rowsAnswered++;
+    }
+  }
+  
+  const averageScore = rowsAnswered > 0 ? totalScore / rowsAnswered : 0;
+  return (averageScore / 5) * 10; // Scale to 0-10
+}
+
+/**
+ * Score a tri-state-table question
+ * Returns normalized score (0-10) based on average of all row tri-states
+ */
+function scoreTriStateTable(q: Extract<Question, { type: 'tri-state-table' }>, a: Answer): number {
+  const ans = a as Extract<Answer, { type: 'tri-state-table' }>;
+  const map = { yes: 1, partial: 0.5, no: 0 } as const;
+  
+  let totalScore = 0;
+  let rowsAnswered = 0;
+  
+  for (const row of q.rows) {
+    const rowValue = ans.rows[row.id];
+    if (rowValue) {
+      totalScore += map[rowValue];
+      rowsAnswered++;
+    }
+  }
+  
+  const averageScore = rowsAnswered > 0 ? totalScore / rowsAnswered : 0;
+  return averageScore * 10; // Scale to 0-10
 }
 
 /**
  * Score a single question based on its type
- * Returns normalized score (0..1)
+ * Returns normalized score (0-10)
  */
 export function scoreQuestion(question: Question, answer: Answer): number {
   switch (question.type) {
@@ -63,6 +134,12 @@ export function scoreQuestion(question: Question, answer: Answer): number {
       return scoreScale05(question as Extract<Question, { type: 'scale-0-5' }>, answer);
     case 'tri-state':
       return scoreTriState(question as Extract<Question, { type: 'tri-state' }>, answer);
+    case 'table-dual-checkboxes':
+      return scoreTableDualCheckboxes(question as Extract<Question, { type: 'table-dual-checkboxes' }>, answer);
+    case 'scale-table':
+      return scoreScaleTable(question as Extract<Question, { type: 'scale-table' }>, answer);
+    case 'tri-state-table':
+      return scoreTriStateTable(question as Extract<Question, { type: 'tri-state-table' }>, answer);
     default:
       return 0;
   }
@@ -70,7 +147,7 @@ export function scoreQuestion(question: Question, answer: Answer): number {
 
 /**
  * Compute dimension scores from answers
- * Returns array of dimension scores with targets and gaps
+ * Returns array of dimension scores (0-100) with targets and gaps
  */
 export function computeDimensionScores(spec: AssessmentSpec, answers: AnswerMap): DimensionScore[] {
   const byDimension: Record<string, { weightedSum: number; totalWeight: number }> = {};
@@ -80,7 +157,7 @@ export function computeDimensionScores(spec: AssessmentSpec, answers: AnswerMap)
     const answer = answers[question.id];
     if (!answer) continue; // Skip unanswered questions
 
-    const questionScore = scoreQuestion(question, answer);
+    const questionScore = scoreQuestion(question, answer); // This is now 0-10
     const questionWeight = question.weight ?? 1;
 
     if (!byDimension[question.dimensionId]) {
@@ -91,18 +168,19 @@ export function computeDimensionScores(spec: AssessmentSpec, answers: AnswerMap)
     byDimension[question.dimensionId].totalWeight += questionWeight;
   }
 
-  // Map dimensions to scores
+  // Map dimensions to scores (0-100 scale)
   return spec.dimensions.map(dimension => {
     const aggregation = byDimension[dimension.id] ?? { weightedSum: 0, totalWeight: 0 };
-    const score = aggregation.totalWeight > 0 ? aggregation.weightedSum / aggregation.totalWeight : 0;
-    const target = dimension.targetLevel ?? 1;
-    const gap = Math.max(0, target - score);
+    const avgQuestionScore = aggregation.totalWeight > 0 ? aggregation.weightedSum / aggregation.totalWeight : 0;
+    const dimensionScore = (avgQuestionScore / 10) * 100; // Convert from 0-10 to 0-100
+    const target = (dimension.targetLevel ?? 1) * 100; // Convert target to 0-100 scale
+    const gap = Math.max(0, target - dimensionScore);
 
     return {
       id: dimension.id,
-      score,
-      target,
-      gap,
+      score: dimensionScore,
+      target: target,
+      gap: gap,
       weight: dimension.weight ?? 1,
     };
   });
@@ -110,12 +188,12 @@ export function computeDimensionScores(spec: AssessmentSpec, answers: AnswerMap)
 
 /**
  * Compute overall assessment score from dimension scores
- * Returns weighted average (0..1)
+ * Returns weighted average (0-100)
  */
 export function computeOverallScore(dimensionScores: DimensionScore[]): number {
   const totalWeight = dimensionScores.reduce((sum, dim) => sum + dim.weight, 0) || 1;
   const weightedSum = dimensionScores.reduce((sum, dim) => sum + dim.score * dim.weight, 0);
-  return weightedSum / totalWeight;
+  return weightedSum / totalWeight; // Dimension scores are already 0-100
 }
 
 /**
