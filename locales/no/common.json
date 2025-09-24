@@ -1,0 +1,66 @@
+{
+  "ui": {
+    "yes": "Ja",
+    "partial": "Delvis",
+    "no": "Nei",
+    "next": "Neste",
+    "previous": "Forrige",
+    "submit": "Send inn",
+    "export": "Eksporter",
+    "save": "Lagre",
+    "cancel": "Avbryt",
+    "continue": "Fortsett",
+    "startAssessment": "Start vurdering",
+    "viewResults": "Se resultater",
+    "downloadResults": "Last ned resultater",
+    "resetAssessment": "Start på nytt",
+    "progress": "Fremgang",
+    "completed": "Fullført",
+    "required": "Påkrevd",
+    "optional": "Valgfri"
+  },
+  "navigation": {
+    "home": "Hjem",
+    "assessment": "Vurdering",
+    "results": "Resultater",
+    "about": "Om"
+  },
+  "dimension": {
+    "digitalStrategy": "Digital forretningsstrategi",
+    "digitalReadiness": "Digital beredskap",
+    "humanCentric": "Menneskesentrert digitalisering",
+    "dataManagement": "Databehandling og tilknytning",
+    "automation": "Automatisering og kunstig intelligens",
+    "greenDigitalization": "Grønn digitalisering"
+  },
+  "maturity": {
+    "level1": "Grunnleggende",
+    "level2": "Gjennomsnittlig",
+    "level3": "Moderat avansert",
+    "level4": "Avansert",
+    "level5": "Ekspert"
+  },
+  "assessment": {
+    "title": "Digital modenhetsvurdering",
+    "description": "Vurder din bedrifts digitale modenhet basert på EU/JRC-rammeverket",
+    "progress": "Fremgang: {{current}} av {{total}} spørsmål",
+    "completionMessage": "Gratulerer! Du har fullført vurderingen.",
+    "incompleteMessage": "Vennligst svar på alle påkrevde spørsmål før du fortsetter."
+  },
+  "results": {
+    "title": "Dine resultater",
+    "overallScore": "Samlet poengsum",
+    "maturityLevel": "Modenhetsnivå",
+    "dimensions": "Dimensjoner",
+    "gaps": "Forbedingsområder",
+    "recommendations": "Anbefalinger",
+    "exportSuccess": "Resultater eksportert vellykket!",
+    "chartTitle": "Digital modenhet - radar oversikt"
+  },
+  "errors": {
+    "generic": "Noe gikk galt. Vennligst prøv igjen.",
+    "validation": "Vennligst sjekk dine svar og prøv igjen.",
+    "export": "Kunne ikke eksportere resultater. Prøv igjen.",
+    "required": "Dette feltet er påkrevd"
+  }
+}
