@@ -6,10 +6,13 @@ import { TriState } from './TriState';
 import { LikertScale05 } from './LikertScale05';
 import { CheckboxGroup } from './CheckboxGroup';
 import { DualCheckbox } from './DualCheckbox';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { TableDualCheckbox } from './TableDualCheckbox';
+import { ScaleTable } from './ScaleTable';
+import { TriStateTable } from './TriStateTable';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Badge } from '@/src/components/ui/badge';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 
 interface QuestionRendererProps {
   question: Question;
@@ -45,6 +48,18 @@ export function QuestionRenderer({
 
   const handleDualCheckboxChange = (value: { left: boolean; right: boolean }) => {
     setAnswer(question.id, { type: 'dual-checkboxes', left: value.left, right: value.right });
+  };
+
+  const handleTableDualCheckboxChange = (rows: Record<string, { left: boolean; right: boolean }>) => {
+    setAnswer(question.id, { type: 'table-dual-checkboxes', rows });
+  };
+
+  const handleScaleTableChange = (rows: Record<string, number>) => {
+    setAnswer(question.id, { type: 'scale-table', rows });
+  };
+
+  const handleTriStateTableChange = (rows: Record<string, 'yes' | 'partial' | 'no'>) => {
+    setAnswer(question.id, { type: 'tri-state-table', rows });
   };
 
   const renderQuestionInput = () => {
@@ -121,6 +136,75 @@ export function QuestionRenderer({
               right: dualAnswer?.right || false
             }}
             onChange={handleDualCheckboxChange}
+            disabled={disabled}
+          />
+        );
+      }
+
+      case 'table-dual-checkboxes': {
+        const tableAnswer = answer as Extract<Answer, { type: 'table-dual-checkboxes' }> | undefined;
+        const tableQuestion = question as Extract<Question, { type: 'table-dual-checkboxes' }>;
+        
+        return (
+          <TableDualCheckbox
+            rows={tableQuestion.rows.map(row => ({
+              id: row.id,
+              label: t(row.label, row.label)
+            }))}
+            columns={{
+              left: {
+                id: tableQuestion.columns.left.id,
+                label: t(tableQuestion.columns.left.label, tableQuestion.columns.left.label),
+                weight: tableQuestion.columns.left.weight
+              },
+              right: {
+                id: tableQuestion.columns.right.id,
+                label: t(tableQuestion.columns.right.label, tableQuestion.columns.right.label),
+                weight: tableQuestion.columns.right.weight
+              }
+            }}
+            values={tableAnswer?.rows || {}}
+            onChange={handleTableDualCheckboxChange}
+            disabled={disabled}
+          />
+        );
+      }
+
+      case 'scale-table': {
+        const scaleTableAnswer = answer as Extract<Answer, { type: 'scale-table' }> | undefined;
+        const scaleTableQuestion = question as Extract<Question, { type: 'scale-table' }>;
+        
+        return (
+          <ScaleTable
+            rows={scaleTableQuestion.rows.map(row => ({
+              id: row.id,
+              label: t(row.label, row.label)
+            }))}
+            scaleLabels={scaleTableQuestion.scaleLabels.map(label => t(label, label))}
+            values={scaleTableAnswer?.rows || {}}
+            onChange={handleScaleTableChange}
+            disabled={disabled}
+          />
+        );
+      }
+
+      case 'tri-state-table': {
+        const triStateTableAnswer = answer as Extract<Answer, { type: 'tri-state-table' }> | undefined;
+        const triStateTableQuestion = question as Extract<Question, { type: 'tri-state-table' }>;
+        
+        return (
+          <TriStateTable
+            rows={triStateTableQuestion.rows.map(row => ({
+              id: row.id,
+              label: t(row.label, row.label)
+            }))}
+            triLabels={{
+              yes: t(triStateTableQuestion.triLabels.yes, 'Ja'),
+              partial: t(triStateTableQuestion.triLabels.partial, 'Delvis'),
+              no: t(triStateTableQuestion.triLabels.no, 'Nei')
+            }}
+            values={triStateTableAnswer?.rows || {}}
+            onChange={handleTriStateTableChange}
             disabled={disabled}
           />
         );
