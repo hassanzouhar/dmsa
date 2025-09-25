@@ -2,10 +2,10 @@
 
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { AssessmentSpec, AnswerMap, AssessmentResults } from '@/src/types/assessment';
-import { computeDimensionScores, computeOverallScore, calculateProgress, validateAnswers } from '@/src/lib/scoring';
-import { classify } from '@/src/lib/maturity';
-import { save, load, StorageKeys } from '@/src/lib/persistence';
+import { AssessmentSpec, AnswerMap, AssessmentResults } from '@/types/assessment';
+import { computeDimensionScores, computeOverallScore, calculateProgress, validateAnswers } from '@/lib/scoring';
+import { classify } from '@/lib/maturity';
+import { save, load, StorageKeys } from '@/lib/persistence';
 
 interface AssessmentState {
   // Core state
@@ -166,28 +166,9 @@ export const useAssessmentStore = create<AssessmentState>()(
   }))
 );
 
-// Hook for accessing results (computed state)
+// Simplified hooks that avoid expensive computations
 export function useAssessmentResults(): AssessmentResults | null {
   return useAssessmentStore((state) => state.getResults());
-}
-
-// Hook for accessing progress
-export function useAssessmentProgress(): number {
-  return useAssessmentStore((state) => state.getProgress());
-}
-
-// Hook for accessing current question
-export function useCurrentQuestion() {
-  return useAssessmentStore((state) => state.getCurrentQuestion());
-}
-
-// Hook for accessing validation state
-export function useAssessmentValidation() {
-  return useAssessmentStore((state) => ({
-    errors: state.getValidationErrors(),
-    isValid: state.getValidationErrors().length === 0,
-    isCompleted: state.isCompleted,
-  }));
 }
 
 // Initialize store with saved data on client-side

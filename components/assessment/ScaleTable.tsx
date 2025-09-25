@@ -22,7 +22,7 @@ interface ScaleTableProps {
 export function ScaleTable({
   rows,
   scaleLabels,
-  value,
+  value = {},
   onChange,
   disabled = false,
   className
@@ -31,7 +31,7 @@ export function ScaleTable({
     if (disabled) return;
     
     onChange({
-      ...value,
+      ...(value || {}),
       [rowId]: scaleValue
     });
   };
@@ -118,7 +118,7 @@ export function ScaleTable({
       {/* Progress and legend */}
       <div className="mt-4 space-y-2">
         <div className="text-xs text-gray-600">
-          {Object.keys(value).filter(k => value[k] !== undefined).length} av {rows.length} teknologier har vurdering
+          {Object.keys(value || {}).filter(k => value && value[k] !== undefined).length} av {rows.length} teknologier har vurdering
         </div>
         <div className="text-xs text-gray-500 leading-relaxed">
           <strong>Skala:</strong> 0 = {scales[0]}, 1 = {scales[1]}, 2 = {scales[2]}, 

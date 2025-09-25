@@ -1,4 +1,4 @@
-import { MaturityBand, DimensionScore } from '@/src/types/assessment';
+import { MaturityBand, DimensionScore } from '@/types/assessment';
 
 /**
  * Default maturity classification bands

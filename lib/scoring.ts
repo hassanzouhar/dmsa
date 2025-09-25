@@ -1,4 +1,4 @@
-import { AssessmentSpec, Question, Answer, AnswerMap, DimensionScore } from '@/src/types/assessment';
+import { AssessmentSpec, Question, Answer, AnswerMap, DimensionScore } from '@/types/assessment';
 
 /**
  * Score a checkboxes question

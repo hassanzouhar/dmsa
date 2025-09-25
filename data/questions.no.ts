@@ -1,4 +1,4 @@
-import { AssessmentSpec } from '@/src/types/assessment';
+import { AssessmentSpec } from '@/types/assessment';
 
 export const dmaNo_v1: AssessmentSpec = {
   version: '1.0.0',
@@ -6,42 +6,42 @@ export const dmaNo_v1: AssessmentSpec = {
   dimensions: [
     { 
       id: 'digitalStrategy', 
-      name: 'dimension.digitalStrategy', 
+      name: 'Digital Forretningsstrategi', 
       weight: 1, 
       targetLevel: 1,
       description: 'Digital forretningsstrategi og investeringsplaner' 
     },
     { 
       id: 'digitalReadiness', 
-      name: 'dimension.digitalReadiness', 
+      name: 'Digital Beredskap', 
       weight: 1, 
       targetLevel: 1,
       description: 'Bruk av grunnleggende og avanserte digitale teknologier' 
     },
     { 
       id: 'humanCentric', 
-      name: 'dimension.humanCentric', 
+      name: 'Menneskelig Digitalisering', 
       weight: 1, 
       targetLevel: 1,
       description: 'Kompetanse og engasjement for digitale teknologier' 
     },
     { 
       id: 'dataManagement', 
-      name: 'dimension.dataManagement', 
+      name: 'Dataforvaltning og Tilkobling', 
       weight: 1, 
       targetLevel: 1,
       description: 'Databehandling, integrering og cybersikkerhet' 
     },
     { 
       id: 'automation', 
-      name: 'dimension.automation', 
+      name: 'Automatisering og KI', 
       weight: 1, 
       targetLevel: 1,
       description: 'Automatisering og kunstig intelligens' 
     },
     { 
       id: 'greenDigitalization', 
-      name: 'dimension.greenDigitalization', 
+      name: 'Grønn Digitalisering', 
       weight: 1, 
       targetLevel: 1,
       description: 'Bærekraftig digitalisering og miljøhensyn' 

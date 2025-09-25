@@ -1,16 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAssessmentStore, useAssessmentProgress, useCurrentQuestion, useAssessmentValidation } from '@/src/store/assessment';
+import { useAssessmentStore } from '@/store/assessment';
+import { validateAnswers, calculateProgress } from '@/lib/scoring';
 import { QuestionRenderer } from '@/components/assessment/QuestionRenderer';
-import { dmaNo_v1 } from '@/src/data/questions.no';
-import { Button } from '@/src/components/ui/button';
-import { Progress } from '@/src/components/ui/progress';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card';
-import { Badge } from '@/src/components/ui/badge';
+import { dmaNo_v1 } from '@/data/questions.no';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ArrowRight, BarChart3, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/src/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function AssessmentPage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function AssessmentPage() {
   // Store state and actions
   const {
     spec,
+    answers,
     setSpec,
     currentQuestionIndex,
     nextQuestion,
@@ -26,12 +28,26 @@ export default function AssessmentPage() {
     setCurrentQuestionIndex,
     isLoading,
     error,
+    isCompleted
   } = useAssessmentStore();
   
-  // Computed state
-  const progress = useAssessmentProgress();
-  const currentQuestion = useCurrentQuestion();
-  const { errors, isValid, isCompleted } = useAssessmentValidation();
+  // Memoized computed state
+  const progress = useMemo(() => {
+    return spec ? calculateProgress(spec, answers) : 0;
+  }, [spec, answers]);
+  
+  const currentQuestion = useMemo(() => {
+    return spec?.questions[currentQuestionIndex] || null;
+  }, [spec, currentQuestionIndex]);
+  
+  const { errors, isValid } = useMemo(() => {
+    if (!spec) return { errors: [], isValid: true };
+    const validationErrors = validateAnswers(spec, answers);
+    return {
+      errors: validationErrors,
+      isValid: validationErrors.length === 0
+    };
+  }, [spec, answers]);
   
   // Initialize the assessment spec
   useEffect(() => {

@@ -1,7 +1,7 @@
 'use client';
 
-import { Question, Answer } from '@/src/types/assessment';
-import { useAssessmentStore } from '@/src/store/assessment';
+import { Question, Answer } from '@/types/assessment';
+import { useAssessmentStore } from '@/store/assessment';
 import { TriState } from './TriState';
 import { LikertScale05 } from './LikertScale05';
 import { CheckboxGroup } from './CheckboxGroup';
@@ -9,10 +9,10 @@ import { DualCheckbox } from './DualCheckbox';
 import { TableDualCheckbox } from './TableDualCheckbox';
 import { ScaleTable } from './ScaleTable';
 import { TriStateTable } from './TriStateTable';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card';
-import { Badge } from '@/src/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/src/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface QuestionRendererProps {
   question: Question;
@@ -151,19 +151,9 @@ export function QuestionRenderer({
               id: row.id,
               label: t(row.label, row.label)
             }))}
-            columns={{
-              left: {
-                id: tableQuestion.columns.left.id,
-                label: t(tableQuestion.columns.left.label, tableQuestion.columns.left.label),
-                weight: tableQuestion.columns.left.weight
-              },
-              right: {
-                id: tableQuestion.columns.right.id,
-                label: t(tableQuestion.columns.right.label, tableQuestion.columns.right.label),
-                weight: tableQuestion.columns.right.weight
-              }
-            }}
-            values={tableAnswer?.rows || {}}
+            leftColumnLabel={t(tableQuestion.columns.left.label, tableQuestion.columns.left.label)}
+            rightColumnLabel={t(tableQuestion.columns.right.label, tableQuestion.columns.right.label)}
+            value={tableAnswer?.rows || {}}
             onChange={handleTableDualCheckboxChange}
             disabled={disabled}
           />
@@ -181,7 +171,7 @@ export function QuestionRenderer({
               label: t(row.label, row.label)
             }))}
             scaleLabels={scaleTableQuestion.scaleLabels.map(label => t(label, label))}
-            values={scaleTableAnswer?.rows || {}}
+            value={scaleTableAnswer?.rows || {}}
             onChange={handleScaleTableChange}
             disabled={disabled}
           />
@@ -198,12 +188,12 @@ export function QuestionRenderer({
               id: row.id,
               label: t(row.label, row.label)
             }))}
-            triLabels={{
+            labels={{
               yes: t(triStateTableQuestion.triLabels.yes, 'Ja'),
               partial: t(triStateTableQuestion.triLabels.partial, 'Delvis'),
               no: t(triStateTableQuestion.triLabels.no, 'Nei')
             }}
-            values={triStateTableAnswer?.rows || {}}
+            value={triStateTableAnswer?.rows || {}}
             onChange={handleTriStateTableChange}
             disabled={disabled}
           />

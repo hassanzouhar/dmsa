@@ -24,7 +24,7 @@ export function TableDualCheckbox({
   rows,
   leftColumnLabel,
   rightColumnLabel,
-  value,
+  value = {},
   onChange,
   disabled = false,
   className
@@ -95,7 +95,7 @@ export function TableDualCheckbox({
       
       {/* Progress indicator */}
       <div className="mt-4 text-xs text-gray-600">
-        {Object.values(value).filter(v => v.left || v.right).length} av {rows.length} områder har svar
+        {Object.values(value || {}).filter(v => v && (v.left || v.right)).length} av {rows.length} områder har svar
       </div>
     </div>
   );

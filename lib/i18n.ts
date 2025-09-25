@@ -4,8 +4,8 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 // Import translations directly
-import noCommon from '../../locales/no/common.json';
-import enCommon from '../../locales/en/common.json';
+import noCommon from '../locales/no/common.json';
+import enCommon from '../locales/en/common.json';
 
 const resources = {
   no: {

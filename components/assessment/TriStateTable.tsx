@@ -26,7 +26,7 @@ interface TriStateTableProps {
 export function TriStateTable({
   rows,
   labels,
-  value,
+  value = {},
   onChange,
   disabled = false,
   className
@@ -35,7 +35,7 @@ export function TriStateTable({
     if (disabled) return;
     
     onChange({
-      ...value,
+      ...(value || {}),
       [rowId]: triValue
     });
   };
@@ -126,7 +126,7 @@ export function TriStateTable({
       {/* Progress indicator */}
       <div className="mt-4 space-y-2">
         <div className="text-xs text-gray-600">
-          {Object.keys(value).filter(k => value[k] !== undefined).length} av {rows.length} praksiser har vurdering
+          {Object.keys(value || {}).filter(k => value && value[k] !== undefined).length} av {rows.length} praksiser har vurdering
         </div>
         <div className="flex gap-4 text-xs">
           <span className="flex items-center gap-1">
