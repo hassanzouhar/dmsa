@@ -203,7 +203,7 @@ export function QuestionRenderer({
       default:
         return (
           <div className="text-muted-foreground italic">
-            Ukjent spørsmålstype: {(question as any).type}
+            Ukjent spørsmålstype: {(question as { type: string }).type}
           </div>
         );
     }

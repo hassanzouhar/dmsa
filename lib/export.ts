@@ -1,4 +1,4 @@
-import { AssessmentSpec, AnswerMap, ExportData, AssessmentResults } from '@/src/types/assessment';
+import { AssessmentSpec, AnswerMap, ExportData, AssessmentResults } from '@/types/assessment';
 
 /**
  * Export data as JSON file download

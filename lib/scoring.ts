@@ -61,7 +61,7 @@ function scoreTableDualCheckboxes(q: Extract<Question, { type: 'table-dual-check
   const rw = q.columns.right.weight ?? 1;
   const maxPerRow = lw + rw;
   
-  let totalPossible = q.rows.length * maxPerRow;
+  const totalPossible = q.rows.length * maxPerRow;
   let totalAchieved = 0;
   
   for (const row of q.rows) {

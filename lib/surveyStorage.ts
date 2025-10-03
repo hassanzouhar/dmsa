@@ -1,14 +1,14 @@
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import { AssessmentResults } from '@/types/assessment';
+import { AssessmentResults, AnswerMap, AssessmentSpec } from '@/types/assessment';
 
 export interface StoredSurveyData {
   id: string;
   version: string;
   language: string;
   timestamp: string;
-  answers: Record<string, any>;
+  answers: AnswerMap;
   scores: {
     dimensions: Array<{
       id: string;
@@ -20,7 +20,7 @@ export interface StoredSurveyData {
     overall: number;
     classification: {
       level: number;
-      label: string;
+      labelKey: string;
     };
   };
   userDetails?: {
@@ -39,8 +39,9 @@ export interface StoredSurveyData {
 export const saveSurvey = async (data: {
   version: string;
   language: string;
-  answers: Record<string, any>;
+  answers: AnswerMap;
   results: AssessmentResults;
+  spec: AssessmentSpec;
   userDetails?: StoredSurveyData['userDetails'];
 }): Promise<string> => {
   try {
@@ -53,13 +54,16 @@ export const saveSurvey = async (data: {
       timestamp: new Date().toISOString(),
       answers: data.answers,
       scores: {
-        dimensions: data.results.dimensions.map(d => ({
-          id: d.id,
-          name: d.name || d.id,
-          score: Math.round(d.score * 100) / 100,
-          target: d.targetLevel,
-          gap: d.gap ? Math.round(d.gap * 100) / 100 : undefined,
-        })),
+        dimensions: data.results.dimensions.map(d => {
+          const dimension = data.spec.dimensions.find(dim => dim.id === d.id);
+          return {
+            id: d.id,
+            name: dimension?.name || d.id,
+            score: Math.round(d.score * 100) / 100,
+            target: d.target,
+            gap: d.gap ? Math.round(d.gap * 100) / 100 : undefined,
+          };
+        }),
         overall: Math.round(data.results.overall * 100) / 100,
         classification: data.results.classification,
       },

@@ -40,12 +40,11 @@ export default function AssessmentPage() {
     return spec?.questions[currentQuestionIndex] || null;
   }, [spec, currentQuestionIndex]);
   
-  const { errors, isValid } = useMemo(() => {
-    if (!spec) return { errors: [], isValid: true };
+  const { errors } = useMemo(() => {
+    if (!spec) return { errors: [] };
     const validationErrors = validateAnswers(spec, answers);
     return {
-      errors: validationErrors,
-      isValid: validationErrors.length === 0
+      errors: validationErrors
     };
   }, [spec, answers]);
   

@@ -10,8 +10,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, Search, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { useTranslation } from 'react-i18next';
 
 export default function RetrieveResultsPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [surveyId, setSurveyId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -203,7 +205,7 @@ export default function RetrieveResultsPage() {
                           'border-red-500 text-red-700 bg-red-50'
                         }`}
                       >
-                        {surveyData.scores.classification.label}
+                        {t(surveyData.scores.classification.labelKey)}
                       </Badge>
                       <Progress value={surveyData.scores.overall} className="w-full" />
                     </div>

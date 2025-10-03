@@ -49,7 +49,7 @@ export function CheckboxGroup({
   };
 
   const isMinimumMet = !minSelect || selected.length >= minSelect;
-  const isMaximumReached = maxSelect && selected.length >= maxSelect;
+  const isMaximumReached = Boolean(maxSelect && selected.length >= maxSelect);
 
   return (
     <div className={cn("space-y-3", className)}>

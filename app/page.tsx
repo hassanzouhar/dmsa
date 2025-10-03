@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, CheckCircle, Clock, Globe, Users, Zap } from 'lucide-react';
+import { BarChart3, CheckCircle, Clock, Globe, Zap } from 'lucide-react';
 
 export default function HomePage() {
   return (

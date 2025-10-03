@@ -12,8 +12,10 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, Download, BarChart3, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { classify } from '@/lib/maturity';
+import { useTranslation } from 'react-i18next';
 
 export default function ResultsPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [isExporting, setIsExporting] = useState(false);
   
@@ -73,7 +75,7 @@ export default function ResultsPage() {
             id: d.id,
             name: spec.dimensions.find(dim => dim.id === d.id)?.name || d.id,
             score: Math.round(d.score * 100) / 100,
-            target: d.targetLevel,
+            target: d.target,
             gap: d.gap ? Math.round(d.gap * 100) / 100 : undefined
           })),
           overall: Math.round(results.overall * 100) / 100,
@@ -170,12 +172,12 @@ export default function ResultsPage() {
                         'border-red-500 text-red-700 bg-red-50'
                       }`}
                     >
-                      {classification?.label || 'Ukjent'}
+                      {classification ? t(classification.labelKey) : 'Ukjent'}
                     </Badge>
                   </div>
                   <Progress value={overallPercentage} className="w-full h-3" />
                   <p className="text-sm text-gray-600 text-center">
-                    Din bedrift viser {classification?.label?.toLowerCase() || 'ukjent'} digital modenhet
+                    Din bedrift viser {classification ? t(classification.labelKey).toLowerCase() : 'ukjent'} digital modenhet
                   </p>
                 </div>
               </CardContent>
