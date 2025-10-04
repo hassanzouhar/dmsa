@@ -138,12 +138,12 @@ export async function getLeaderboardEntries(options: {
       country: 'Norge', // Default for now
       overallScore: survey.scores.overall / 10, // Convert 0-100 to 0-10 scale
       dimensionScores: {
-        digitalBusinessStrategy: (survey.scores.dimensions.digitalBusinessStrategy || 0) / 10,
-        digitalReadiness: (survey.scores.dimensions.digitalReadiness || 0) / 10,
-        humanCentricDigitalization: (survey.scores.dimensions.humanCentricDigitalization || 0) / 10,
-        dataManagement: (survey.scores.dimensions.dataManagement || 0) / 10,
-        automationAndAI: (survey.scores.dimensions.automationAndAI || 0) / 10,
-        greenDigitalization: (survey.scores.dimensions.greenDigitalization || 0) / 10,
+        digitalBusinessStrategy: (survey.scores.dimensions.digitalBusinessStrategy?.score || 0) / 10,
+        digitalReadiness: (survey.scores.dimensions.digitalReadiness?.score || 0) / 10,
+        humanCentricDigitalization: (survey.scores.dimensions.humanCentricDigitalization?.score || 0) / 10,
+        dataManagement: (survey.scores.dimensions.dataManagement?.score || 0) / 10,
+        automationAndAI: (survey.scores.dimensions.automationAndAI?.score || 0) / 10,
+        greenDigitalization: (survey.scores.dimensions.greenDigitalization?.score || 0) / 10,
       },
       completedAt: survey.completedAt || survey.createdAt,
       isAnonymous: survey.flags.isAnonymous || false,
@@ -214,8 +214,9 @@ export async function getIndustryBenchmarks(minSampleSize: number = 3): Promise<
     surveys.forEach(survey => {
       if (!survey.scores) return;
       Object.keys(dimensionTotals).forEach(dim => {
+        const dimensionScore = survey.scores!.dimensions[dim as keyof typeof survey.scores.dimensions];
         dimensionTotals[dim as keyof typeof dimensionTotals] +=
-          (survey.scores!.dimensions[dim as keyof typeof survey.scores.dimensions] || 0);
+          (dimensionScore?.score || 0);
       });
     });
 
