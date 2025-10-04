@@ -40,7 +40,7 @@ export function QuestionRenderer({
     if (!answer) return false;
     if ('selected' in answer) return answer.selected && answer.selected.length > 0;
     if ('value' in answer) return answer.value !== undefined && answer.value !== null;
-    if ('left' in answer || 'right' in answer) return answer.left || answer.right;
+    if (answer.type === 'dual-checkboxes') return answer.left || answer.right;
     if ('rows' in answer) {
       const rows = answer.rows as Record<string, unknown>;
       return Object.keys(rows).length > 0;

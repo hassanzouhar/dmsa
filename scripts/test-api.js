@@ -231,7 +231,7 @@ async function checkServer() {
   try {
     const response = await fetch(BASE_URL);
     return response.ok || response.status === 404; // 404 is fine, means server is running
-  } catch (error) {
+  } catch {
     return false;
   }
 }

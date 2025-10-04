@@ -147,3 +147,97 @@ export interface ExportData {
     };
   };
 }
+
+// Company details collected at survey start
+export interface CompanyDetails {
+  companyName: string;
+  naceSector: string; // NACE sector code (A-U)
+  companySize: 'micro' | 'small' | 'medium' | 'large';
+  country?: string;
+  zipCode?: string;
+}
+
+// User details for T1 survey upgrade
+export interface UserDetails {
+  email: string;
+  companyName: string;
+  sector: string; // Mapped from NACE to simple categories
+  companySize: 'micro' | 'small' | 'medium' | 'large';
+  region?: string;
+  country?: string;
+}
+
+// Survey assessment timeline (business maturity measurement)
+export type AssessmentTimeline = 'T0' | 'T1';
+export type SurveyVersion = 'v1.0' | 'v2.0'; // For future platform versioning
+
+// Base survey structure
+export interface BaseSurvey {
+  id: string;
+  timeline: AssessmentTimeline; // T0 = baseline, T1 = after changes
+  surveyVersion: SurveyVersion;
+  language: 'no' | 'en';
+  createdAt: string; // ISO 8601 when survey started
+  completedAt?: string; // ISO 8601 when assessment completed
+  companyDetails: CompanyDetails;
+  answers?: AnswerMap;
+  scores?: {
+    dimensions: Record<string, { score: number; target: number; gap: number }>;
+    overall: number;
+    maturityClassification: {
+      level: number;
+      label: string;
+      band: string;
+    };
+  };
+  userDetails?: UserDetails; // Optional email for expanded access
+  hasExpandedAccess?: boolean; // Whether user provided email
+}
+
+// T0 Survey - Baseline assessment (before implementing changes)
+export interface T0Survey extends BaseSurvey {
+  timeline: 'T0';
+  // This is the initial state assessment
+  // Company can use this to plan digital transformation
+}
+
+// T1 Survey - Post-implementation assessment (after implementing changes)  
+export interface T1Survey extends BaseSurvey {
+  timeline: 'T1';
+  baselineId: string; // Links back to the original T0 survey
+  implementationPeriod?: {
+    startDate?: string; // When changes began
+    endDate?: string;   // When changes completed
+    description?: string; // What changes were made
+    investmentAmount?: number; // Optional investment tracking
+  };
+}
+
+// Union type for all survey timelines
+export type Survey = T0Survey | T1Survey;
+
+// Legacy interface for backward compatibility
+export interface SurveySubmission {
+  id: string;
+  version: string;
+  language: string;
+  timestamp: string; // ISO 8601 string
+  answers: AnswerMap;
+  scores: {
+    dimensions: Record<string, { score: number; target: number; gap: number }>;
+    overall: number;
+    maturityClassification: {
+      level: number;
+      label: string;
+      band: string;
+    };
+  };
+  userDetails?: {
+    email?: string;
+    companyName?: string;
+    sector?: string;
+    companySize?: string;
+    region?: string;
+    country?: string;
+  };
+}

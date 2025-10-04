@@ -25,7 +25,7 @@ export function TriState({
 }: TriStateProps) {
   return (
     <RadioGroup 
-      value={value} 
+      value={value || ''} 
       onValueChange={(v) => onChange(v as 'yes' | 'partial' | 'no')} 
       className={cn("flex flex-col gap-3 sm:flex-row sm:gap-6", className)}
       disabled={disabled}

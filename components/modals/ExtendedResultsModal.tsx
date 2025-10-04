@@ -61,13 +61,39 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
     curr[1].score < prev[1].score ? curr : prev
   );
 
+  // Comprehensive dimension name mapping for both legacy and new API formats
   const dimensionNames: Record<string, string> = {
-    digitalBusinessStrategy: 'Digital Business Strategy',
-    digitalReadiness: 'Digital Readiness', 
-    humanCentricDigitalization: 'Human-Centric Digitalization',
+    // Survey dimension IDs (from questions.no.ts)
+    digitalStrategy: 'Digital Business Strategy',
+    digitalReadiness: 'Digital Readiness',
+    humanCentric: 'Human-Centric Digitalization',
     dataManagement: 'Data Management',
+    automation: 'Automation and AI',
+    greenDigitalization: 'Green Digitalization',
+    // Legacy benchmark dimension keys (if they appear)
+    digitalBusinessStrategy: 'Digital Business Strategy',
+    humanCentricDigitalization: 'Human-Centric Digitalization',
     automationAndAI: 'Automation and AI',
-    greenDigitalization: 'Green Digitalization'
+    // Snake_case format (if used in API)
+    digital_business_strategy: 'Digital Business Strategy',
+    digital_readiness: 'Digital Readiness',
+    human_centric: 'Human-Centric Digitalization',
+    data_management: 'Data Management',
+    automation_ai: 'Automation and AI',
+    green_digitalization: 'Green Digitalization'
+  };
+  
+  // Helper function to safely get dimension name
+  const getDimensionName = (dimensionId: string): string => {
+    return dimensionNames[dimensionId] || 
+           dimensionId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) ||
+           'Unknown Dimension';
+  };
+  
+  // Helper function to get dimension short name safely
+  const getDimensionShortName = (dimensionId: string): string => {
+    const fullName = getDimensionName(dimensionId);
+    return fullName.split(' ')[0] || 'Unknown';
   };
 
   const getMaturityColor = (level: number) => {
@@ -104,7 +130,7 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
     }
 
     // Dimension-specific insights
-    const lowScoreDimensions = dimensionEntries.filter(([_, dim]) => dim.score < 50);
+    const lowScoreDimensions = dimensionEntries.filter(([, dim]) => dim.score < 50);
     if (lowScoreDimensions.length > 0) {
       insights.push({
         type: 'alert',
@@ -114,7 +140,7 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
       });
     }
 
-    const highScoreDimensions = dimensionEntries.filter(([_, dim]) => dim.score >= 80);
+    const highScoreDimensions = dimensionEntries.filter(([, dim]) => dim.score >= 80);
     if (highScoreDimensions.length > 0) {
       insights.push({
         type: 'success',
@@ -267,7 +293,7 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
                   <CardContent>
                     <RadarChart
                       data={dimensionEntries.map(([dimensionId, dimension]) => ({
-                        dimension: dimensionNames[dimensionId] || dimensionId,
+                        dimension: getDimensionName(dimensionId),
                         score: dimension.score,
                         target: dimension.target || dimension.score * 1.2,
                         fullMark: 100
@@ -283,7 +309,7 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-primary">
-                        {dimensionNames[topDimension[0]].split(' ')[0]}
+                        {getDimensionShortName(topDimension[0])}
                       </div>
                       <p className="text-xs text-muted-foreground">Strongest Area</p>
                       <p className="text-sm font-medium">{topDimension[1].score}/100</p>
@@ -293,7 +319,7 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-amber-600">
-                        {dimensionNames[bottomDimension[0]].split(' ')[0]}
+                        {getDimensionShortName(bottomDimension[0])}
                       </div>
                       <p className="text-xs text-muted-foreground">Growth Area</p>
                       <p className="text-sm font-medium">{bottomDimension[1].score}/100</p>
@@ -303,7 +329,7 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-blue-600">
-                        {dimensionEntries.filter(([_, dim]) => dim.score >= 70).length}
+                        {dimensionEntries.filter(([, dim]) => dim.score >= 70).length}
                       </div>
                       <p className="text-xs text-muted-foreground">High Performing</p>
                       <p className="text-sm font-medium">Dimensions ≥70</p>
@@ -340,7 +366,17 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
               {/* Benchmarks Tab */}
               <TabsContent value="benchmarks" className="space-y-6">
                 {hasUserDetails ? (
-                  <BenchmarkSection surveyData={surveyData} />
+                  <BenchmarkSection 
+                    company={{
+                      companyName: surveyData.userDetails?.companyName || 'Unknown',
+                      companySize: (surveyData.userDetails?.companySize as 'micro' | 'small' | 'medium' | 'large') || 'small',
+                      nace: 'C',
+                      sector: (surveyData.userDetails?.sector as 'manufacturing' | 'services' | 'retail' | 'healthcare' | 'education' | 'government' | 'other') || 'manufacturing',
+                      region: surveyData.userDetails?.region || 'Unknown'
+                    }}
+                    dimensions={surveyData.scores.dimensions}
+                    overallScore={surveyData.scores.overall}
+                  />
                 ) : (
                   <Card className="text-center py-12">
                     <CardContent>
@@ -388,7 +424,7 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
                         <div>
                           <h5 className="font-semibold text-sm text-green-800">🏆 Top Performing Area</h5>
                           <p className="text-sm">
-                            <strong>{dimensionNames[topDimension[0]]}</strong> - {topDimension[1].score}/100
+                            <strong>{getDimensionName(topDimension[0])}</strong> - {topDimension[1].score}/100
                           </p>
                           <p className="text-xs text-muted-foreground">
                             This dimension shows your organization&apos;s strongest digital capabilities.
@@ -398,7 +434,7 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
                         <div>
                           <h5 className="font-semibold text-sm text-amber-800">🎯 Priority for Improvement</h5>
                           <p className="text-sm">
-                            <strong>{dimensionNames[bottomDimension[0]]}</strong> - {bottomDimension[1].score}/100
+                            <strong>{getDimensionName(bottomDimension[0])}</strong> - {bottomDimension[1].score}/100
                           </p>
                           <p className="text-xs text-muted-foreground">
                             Focus improvements here for maximum impact on overall digital maturity.
@@ -422,7 +458,7 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
                       {dimensionEntries.map(([dimensionId, dimension]) => (
                         <div key={dimensionId} className="border rounded-lg p-4">
                           <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-semibold">{dimensionNames[dimensionId]}</h4>
+                            <h4 className="font-semibold">{getDimensionName(dimensionId)}</h4>
                             <Badge variant="outline">{dimension.score}/100</Badge>
                           </div>
                           <Progress value={dimension.score} className="mb-2" />
@@ -454,8 +490,8 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
                       <div>
                         <h5 className="font-semibold text-sm mb-2">🎯 Priority Focus Areas (Next 3 months)</h5>
                         <ul className="text-sm space-y-1 ml-4">
-                          <li>• Address {dimensionNames[bottomDimension[0]]} - your lowest scoring dimension</li>
-                          <li>• Leverage strength in {dimensionNames[topDimension[0]]} to drive broader improvements</li>
+                          <li>• Address {getDimensionName(bottomDimension[0])} - your lowest scoring dimension</li>
+                          <li>• Leverage strength in {getDimensionName(topDimension[0])} to drive broader improvements</li>
                           <li>• Establish regular assessment cycles for progress tracking</li>
                         </ul>
                       </div>

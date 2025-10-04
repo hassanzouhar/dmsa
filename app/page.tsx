@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, CheckCircle, Clock, Globe, Zap } from 'lucide-react';
+import { BarChart3, CheckCircle, Clock } from 'lucide-react';
 
 export default function HomePage() {
   return (
@@ -25,17 +25,13 @@ export default function HomePage() {
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/assessment">
+            <div className="flex justify-center">
+              <Link href="/company-details">
                 <Button size="lg" className="text-lg px-8 py-6">
                   <BarChart3 className="w-5 h-5 mr-2" />
                   Start vurdering
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                <Globe className="w-5 h-5 mr-2" />
-                Les mer om DMA
-              </Button>
             </div>
           </div>
 
@@ -81,9 +77,9 @@ export default function HomePage() {
           {/* Assessment Dimensions */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl text-center">6 Dimensjoner for Digital Modenhet</CardTitle>
+              <CardTitle className="text-2xl text-center">Digital Modenhet målt i 6 dimensjoner </CardTitle>
               <CardDescription className="text-center">
-                Vurderingen dekker alle kritiske områder for digital transformasjon
+                Verktøyet viser deg digitale styrker og svakheter, og måler deg opp mot andre i din bransje.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -94,9 +90,9 @@ export default function HomePage() {
                       1
                     </div>
                     <div>
-                      <h3 className="font-semibold">Digital forretningsstrategi</h3>
+                      <h3 className="font-semibold">Strategi</h3>
                       <p className="text-sm text-muted-foreground">
-                        Investeringer og beredskap for digitalisering
+                        Finnes det en plan? Hva investeres det i, og planlegges for?
                       </p>
                     </div>
                   </div>
@@ -106,7 +102,7 @@ export default function HomePage() {
                       2
                     </div>
                     <div>
-                      <h3 className="font-semibold">Digital beredskap</h3>
+                      <h3 className="font-semibold">Evner og beredskap</h3>
                       <p className="text-sm text-muted-foreground">
                         Grunnleggende og avanserte teknologier i bruk
                       </p>
@@ -118,9 +114,9 @@ export default function HomePage() {
                       3
                     </div>
                     <div>
-                      <h3 className="font-semibold">Digitalisering med menneske i sentrum</h3>
+                      <h3 className="font-semibold">Digitale evner</h3>
                       <p className="text-sm text-muted-foreground">
-                        Kompetanse og engasjement for digitale teknologier
+                        Kompetanse innen digitale teknologier, og engasjement for endring
                       </p>
                     </div>
                   </div>
@@ -167,32 +163,14 @@ export default function HomePage() {
             </CardContent>
           </Card>
 
-          {/* CTA Section */}
-          <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0">
-            <CardContent className="pt-8 pb-8 text-center">
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold">Klar til å måle din digitale modenhet?</h2>
-                <p className="text-blue-100 max-w-md mx-auto">
-                  Start vurderingen nå og få innsikt i din bedrifts digitale transformasjonsreise
-                </p>
-                <Link href="/assessment">
-                  <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
-                    <Zap className="w-5 h-5 mr-2" />
-                    Begynn vurdering
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Footer */}
           <div className="text-center text-sm text-muted-foreground pt-8 border-t">
             <p>
-              Basert på EU Joint Research Centre (JRC) Digital Maturity Assessment framework
+              This tool is based on EU Joint Research Centre (JRC) Digital Maturity Assessment framework.
             </p>
             <p className="mt-2">
-              Fullstendig klient-side applikasjon - ingen data sendes til eksterne servere
-            </p>
+              Made with ❤️ by <strong> <a href="https://rastla.us" className="underline hover:text-primary">Rastlaus</a> </strong> </p>
           </div>
         </div>
       </div>

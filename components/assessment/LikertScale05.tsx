@@ -29,7 +29,7 @@ export function LikertScale05({
   return (
     <div className={cn("space-y-4", className)}>
       <RadioGroup 
-        value={value?.toString()} 
+        value={value?.toString() || ''} 
         onValueChange={(v) => onChange(parseInt(v, 10))} 
         className="flex flex-col gap-3 sm:flex-row sm:gap-4"
         disabled={disabled}

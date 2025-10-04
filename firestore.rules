@@ -1,18 +1,169 @@
-rules_version='2'
+rules_version = '2';
 
+// Digital Maturity Assessment - Secure Firestore Rules
+// Deny-by-default with explicit, validated exceptions
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+    
+    function keysOnly(data, allowed) {
+      return data.keys().hasOnly(allowed);
+    }
+    
+    function keysHasAll(data, required) {
+      return data.keys().hasAll(required);
+    }
+    
+    function isValidCompanyDetails(details) {
+      return details.keys().hasOnly(['companyName', 'companySize', 'nace', 'sector', 'region']) &&
+             details.companyName is string &&
+             details.companySize in ['micro', 'small', 'medium', 'large'] &&
+             details.nace is string &&
+             details.sector in ['manufacturing', 'services', 'retail', 'healthcare', 'education', 'government', 'other'] &&
+             details.region is string;
+    }
+    
+    function isValidSurveyFlags(flags) {
+      return flags.keys().hasOnly(['isCompleted', 'hasResults', 'hasExpandedAccess']) &&
+             flags.isCompleted is bool &&
+             flags.hasResults is bool &&
+             flags.hasExpandedAccess is bool;
+    }
+    
+    function isValidRetrievalToken(token) {
+      return token.keys().hasOnly(['tokenHash', 'createdAt', 'revoked']) &&
+             token.tokenHash is string &&
+             token.createdAt is string &&
+             token.revoked is bool;
+    }
+    
+    // Main surveys collection - NO direct client reads
+    match /surveys/{surveyId} {
+      allow read: if false; // Completely deny direct reads - use API instead
+      
+      // Allow creating T0 survey with strict validation
+      allow create: if 
+        keysOnly(request.resource.data, [
+          'id', 'state', 'surveyVersion', 'language', 'createdAt', 
+          'companyDetails', 'flags', 'retrieval'
+        ]) &&
+        request.resource.data.id == surveyId &&
+        request.resource.data.state == 'T0' &&
+        request.resource.data.surveyVersion in ['v1.0', 'v1.1'] &&
+        request.resource.data.language in ['no', 'en'] &&
+        request.resource.data.createdAt is string &&
+        isValidCompanyDetails(request.resource.data.companyDetails) &&
+        // No email in company details
+        !('email' in request.resource.data.companyDetails) &&
+        !('contactEmail' in request.resource.data.companyDetails) &&
+        // Flags must be initial T0 state
+        request.resource.data.flags.isCompleted == false &&
+        request.resource.data.flags.hasResults == false &&
+        request.resource.data.flags.hasExpandedAccess == false &&
+        isValidSurveyFlags(request.resource.data.flags) &&
+        isValidRetrievalToken(request.resource.data.retrieval);
+      
+      // Allow limited updates for completion and upgrade
+      allow update: if 
+        resource.data.id == surveyId &&
+        request.resource.data.id == surveyId &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.retrieval == resource.data.retrieval &&
+        // State can only progress T0 -> T1, never backward
+        (request.resource.data.state == resource.data.state || 
+         (resource.data.state == 'T0' && request.resource.data.state == 'T1')) &&
+        // Prevent PII injection at top level
+        isValidCompanyDetails(request.resource.data.companyDetails) &&
+        !('email' in request.resource.data.companyDetails) &&
+        !('contactEmail' in request.resource.data.companyDetails) &&
+        // Flags can only progress, never regress
+        (request.resource.data.flags.isCompleted == true || 
+         request.resource.data.flags.isCompleted == resource.data.flags.isCompleted) &&
+        (request.resource.data.flags.hasResults == true || 
+         request.resource.data.flags.hasResults == resource.data.flags.hasResults) &&
+        (request.resource.data.flags.hasExpandedAccess == true || 
+         request.resource.data.flags.hasExpandedAccess == resource.data.flags.hasExpandedAccess) &&
+        isValidSurveyFlags(request.resource.data.flags);
+      
+      allow delete: if false; // Never allow deletion from client
+      
+      // Public results subcollection - read-only access
+      match /results/{docId} {
+        allow get: if docId == 'public';
+        allow list: if false;
+        allow write: if false; // Only Admin SDK can write
+      }
+      
+      // Answers subcollection - write-only for clients
+      match /answers/{docId} {
+        allow read: if false; // Write-only
+        allow create, update: if 
+          docId == 'current' &&
+          keysOnly(request.resource.data, ['answers']) &&
+          request.resource.data.answers is map;
+        allow delete: if false;
+      }
+      
+      // Private subcollection - write-only, never readable by clients
+      match /private/{docId} {
+        allow read: if false; // Absolutely no client reads of PII
+        allow create, update: if 
+          docId == 'userDetails' &&
+          keysOnly(request.resource.data, [
+            'email', 'emailDomain', 'contactName', 'createdAt', 
+            'consentAcceptedAt', 'policyVersion'
+          ]) &&
+          request.resource.data.email is string &&
+          request.resource.data.emailDomain is string &&
+          request.resource.data.createdAt is string &&
+          // Email domain should match extracted domain
+          request.resource.data.email.split('@')[1] == request.resource.data.emailDomain;
+        allow delete: if false;
+      }
+    }
+    
+    // Analytics events - append-only event store
+    match /analytics_events/{eventId} {
+      allow create: if 
+        keysHasAll(request.resource.data, ['event', 'timestamp', 'serverTimestamp']) &&
+        request.resource.data.event in [
+          'assessment_started', 'assessment_completed', 'email_captured',
+          'results_retrieved', 'pdf_downloaded', 'json_exported',
+          'expanded_access_unlocked', 'assessment_abandoned',
+          'survey_created', 'survey_upgraded'
+        ] &&
+        request.resource.data.timestamp is string &&
+        request.resource.data.serverTimestamp == request.time &&
+        // No PII in events - only email domain if provided
+        !('email' in request.resource.data);
+      allow read, update, delete: if false; // Write-only
+    }
+    
+    // Analytics aggregates - Admin only
+    match /analytics/{docId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Benchmarks - read-only for all, write for admin only
+    match /benchmarks/{industry}/sizes/{size} {
+      allow get: if true;
+      allow list: if true; // Allow listing for UI dropdowns
+      allow write: if isAdmin();
+    }
+    
+    // Future admin config
+    match /admin/{document=**} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // Default deny everything else
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2025, 11, 3);
+      allow read, write: if false;
     }
   }
 }

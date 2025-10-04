@@ -16,22 +16,37 @@ const resources = {
   },
 };
 
-if (!i18n.isInitialized) {
-  i18n
-    .use(initReactI18next)
-    .init({
-      resources,
-      lng: typeof window !== 'undefined' ? localStorage.getItem('dmsa-language') || 'no' : 'no',
-      fallbackLng: 'en',
-      ns: ['common'],
-      defaultNS: 'common',
-      interpolation: {
-        escapeValue: false,
-      },
-      react: {
-        useSuspense: false,
-      },
-    });
-}
+// Initialize i18n with proper error handling and SSR support
+const initI18n = () => {
+  if (!i18n.isInitialized) {
+    try {
+      i18n
+        .use(initReactI18next)
+        .init({
+          resources,
+          lng: typeof window !== 'undefined' ? localStorage.getItem('dmsa-language') || 'no' : 'no',
+          fallbackLng: 'en',
+          ns: ['common'],
+          defaultNS: 'common',
+          interpolation: {
+            escapeValue: false,
+          },
+          react: {
+            useSuspense: false,
+          },
+          // Add these for better SSR support
+          debug: false,
+          keySeparator: false,
+          nsSeparator: false,
+          initImmediate: false,
+        });
+    } catch (error) {
+      console.warn('i18n initialization failed:', error);
+    }
+  }
+};
+
+// Initialize immediately
+initI18n();
 
 export default i18n;

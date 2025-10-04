@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
-  TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, 
+  TrendingUp, AlertTriangle, CheckCircle2, 
   Target, Lightbulb, ArrowRight, Info 
 } from 'lucide-react';
 
@@ -193,9 +193,6 @@ export const DimensionGauge: React.FC<DimensionGaugeProps> = ({
   const performance = getPerformanceLevel(score);
   const recommendations = getDimensionRecommendations(dimensionId, score);
   const Icon = performance.icon;
-
-  // Calculate gauge rotation (semi-circle: 0° to 180°)
-  const gaugeRotation = (score / 100) * 180;
 
   return (
     <Card className={`${performance.borderColor} ${className}`}>

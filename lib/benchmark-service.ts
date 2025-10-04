@@ -111,8 +111,7 @@ export interface ComparisonResult {
  */
 export const getBenchmarkData = (
   sector?: string,
-  companySize?: string,
-  region?: string
+  companySize?: string
 ): BenchmarkData => {
   // Try to find specific benchmark data
   const key = `${sector}-${companySize}`;
@@ -135,6 +134,26 @@ export const getBenchmarkData = (
 };
 
 /**
+ * Map survey dimension IDs to benchmark dimension keys
+ */
+const DIMENSION_MAPPING: Record<string, string> = {
+  // Survey dimension ID -> Benchmark dimension key (from questions.no.ts)
+  'digitalStrategy': 'digitalBusinessStrategy',
+  'digitalReadiness': 'digitalReadiness',
+  'humanCentric': 'humanCentricDigitalization',
+  'dataManagement': 'dataManagement',
+  'automation': 'automationAndAI',
+  'greenDigitalization': 'greenDigitalization',
+  // Legacy snake_case API versions (if they exist)
+  'digital_business_strategy': 'digitalBusinessStrategy',
+  'digital_readiness': 'digitalReadiness', 
+  'human_centric_digitalization': 'humanCentricDigitalization',
+  'data_management': 'dataManagement',
+  'automation_and_ai': 'automationAndAI',
+  'green_digitalization': 'greenDigitalization',
+};
+
+/**
  * Compare user score against benchmark data
  */
 export const compareScore = (
@@ -142,11 +161,20 @@ export const compareScore = (
   benchmarkData: BenchmarkData,
   dimension?: string
 ): ComparisonResult => {
-  const benchmark = dimension 
-    ? benchmarkData.dimensions[dimension] 
+  let benchmarkKey = dimension;
+  
+  // Map dimension ID to benchmark key if needed
+  if (dimension && DIMENSION_MAPPING[dimension]) {
+    benchmarkKey = DIMENSION_MAPPING[dimension];
+  }
+  
+  const benchmark = benchmarkKey 
+    ? benchmarkData.dimensions[benchmarkKey] 
     : benchmarkData.overall;
   
   if (!benchmark) {
+    console.warn(`Benchmark data not found for dimension: ${dimension} (mapped to: ${benchmarkKey})`);
+    console.warn(`Available dimensions:`, Object.keys(benchmarkData.dimensions));
     throw new Error(`Benchmark data not found for dimension: ${dimension}`);
   }
   
@@ -211,8 +239,7 @@ export const compareScore = (
 export const generateBenchmarkComparison = (surveyData: SurveySubmission) => {
   const benchmarkData = getBenchmarkData(
     surveyData.userDetails?.sector,
-    surveyData.userDetails?.companySize,
-    surveyData.userDetails?.region
+    surveyData.userDetails?.companySize
   );
   
   // Overall comparison
@@ -255,9 +282,9 @@ export const generateBenchmarkComparison = (surveyData: SurveySubmission) => {
       }
     },
     summary: {
-      aboveAverageCount: dimensionEntries.filter(([_, comp]) => comp.gap > 0).length,
-      belowAverageCount: dimensionEntries.filter(([_, comp]) => comp.gap < 0).length,
-      topQuartileCount: dimensionEntries.filter(([_, comp]) => comp.performanceLevel === 'top_quartile' || comp.performanceLevel === 'top_decile').length
+      aboveAverageCount: dimensionEntries.filter(([, comp]) => comp.gap > 0).length,
+      belowAverageCount: dimensionEntries.filter(([, comp]) => comp.gap < 0).length,
+      topQuartileCount: dimensionEntries.filter(([, comp]) => comp.performanceLevel === 'top_quartile' || comp.performanceLevel === 'top_decile').length
     }
   };
 };
@@ -293,10 +320,12 @@ export const getCompanySizeDisplayName = (size: string): string => {
   return sizeNames[size] || 'All Company Sizes';
 };
 
-export default {
+const benchmarkService = {
   getBenchmarkData,
   compareScore,
   generateBenchmarkComparison,
   getSectorDisplayName,
   getCompanySizeDisplayName
 };
+
+export default benchmarkService;

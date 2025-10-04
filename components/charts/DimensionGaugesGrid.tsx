@@ -13,7 +13,7 @@ interface DimensionScore {
 interface DimensionSpec {
   id: string;
   name: string;
-  description: string;
+  description?: string;
 }
 
 interface DimensionGaugesGridProps {

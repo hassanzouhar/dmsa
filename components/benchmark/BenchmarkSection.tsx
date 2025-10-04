@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SurveySubmission } from '@/types/assessment';
+import { CompanyDetails, DimensionScore } from '@/types/firestore-schema';
 import { 
   generateBenchmarkComparison, 
   getSectorDisplayName, 
@@ -13,15 +13,39 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface BenchmarkSectionProps {
-  surveyData: SurveySubmission;
+  company: CompanyDetails;
+  dimensions: Record<string, DimensionScore>;
+  overallScore: number;
 }
 
-const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ surveyData }) => {
+const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ company, dimensions, overallScore }) => {
   const [showDimensionDetails, setShowDimensionDetails] = useState(false);
   
+  // Create surveyData-like object for compatibility with existing benchmark service
+  const surveyDataCompat = {
+    id: 'temp',
+    version: 'v1.0',
+    language: 'no',
+    timestamp: new Date().toISOString(),
+    answers: {},
+    scores: {
+      dimensions,
+      overall: overallScore,
+      maturityClassification: {
+        level: 1,
+        label: 'Basic',
+        band: 'basic'
+      }
+    },
+    userDetails: {
+      companySize: company.companySize,
+      sector: company.sector
+    }
+  };
+  
   // Generate benchmark comparison
-  const benchmarkComparison = generateBenchmarkComparison(surveyData);
-  const { overall, dimensions, benchmarkData, insights, summary } = benchmarkComparison;
+  const benchmarkComparison = generateBenchmarkComparison(surveyDataCompat);
+  const { overall, dimensions: dimensionComparisons, benchmarkData, insights, summary } = benchmarkComparison;
 
   // Dimension names mapping
   const dimensionNames: Record<string, string> = {
@@ -123,7 +147,7 @@ const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ surveyData }) => {
 
         {showDimensionDetails && (
           <div className="mt-6 space-y-6">
-            {Object.entries(dimensions).map(([dimensionId, comparison]) => (
+            {Object.entries(dimensionComparisons).map(([dimensionId, comparison]) => (
               <BenchmarkChart
                 key={dimensionId}
                 title={dimensionNames[dimensionId]}
@@ -140,9 +164,9 @@ const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ surveyData }) => {
                   🎯 Priority Actions (High Impact)
                 </h3>
                 <div className="space-y-3">
-                  {Object.entries(dimensions)
-                    .filter(([_, comp]) => comp.gap < -15) // Large gaps
-                    .sort(([_, a], [__, b]) => a.gap - b.gap)
+                  {Object.entries(dimensionComparisons)
+                    .filter(([, comp]) => comp.gap < -15) // Large gaps
+                    .sort(([, a], [, b]) => a.gap - b.gap)
                     .slice(0, 2)
                     .map(([dimensionId, comp]) => (
                       <div key={dimensionId} className="bg-white rounded-lg p-4 border border-red-100">
@@ -169,9 +193,9 @@ const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ surveyData }) => {
                   ⚡ Quick Wins (Medium Impact, Low Effort)
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(dimensions)
-                    .filter(([_, comp]) => comp.gap >= -15 && comp.gap < 0) // Moderate gaps
-                    .sort(([_, a], [__, b]) => b.gap - a.gap) // Easiest first
+                  {Object.entries(dimensionComparisons)
+                    .filter(([, comp]) => comp.gap >= -15 && comp.gap < 0) // Moderate gaps
+                    .sort(([, a], [, b]) => b.gap - a.gap) // Easiest first
                     .map(([dimensionId, comp]) => (
                       <div key={dimensionId} className="bg-white rounded-lg p-3 border border-amber-100">
                         <div className="flex items-center gap-2 mb-1">
@@ -194,9 +218,9 @@ const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ surveyData }) => {
                   🏆 Leverage Your Strengths
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(dimensions)
-                    .filter(([_, comp]) => comp.gap > 0)
-                    .sort(([_, a], [__, b]) => b.gap - a.gap)
+                  {Object.entries(dimensionComparisons)
+                    .filter(([, comp]) => comp.gap > 0)
+                    .sort(([, a], [, b]) => b.gap - a.gap)
                     .map(([dimensionId, comp]) => (
                       <div key={dimensionId} className="bg-white rounded-lg p-3 border border-green-100">
                         <div className="flex items-center gap-2 mb-1">

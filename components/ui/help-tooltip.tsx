@@ -2,11 +2,11 @@
 
 import React from 'react';
 import { Button } from './button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './card';
+import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
 import { 
   HelpCircle, Info, Lightbulb, BookOpen, ArrowRight, 
-  CheckCircle, AlertCircle, Target, TrendingUp 
+  CheckCircle, AlertCircle, Target 
 } from 'lucide-react';
 import {
   Tooltip,
@@ -241,15 +241,11 @@ export const InterpretationCard: React.FC<InterpretationCardProps> = ({
 
 interface MaturityLevelExplanationProps {
   level: number;
-  label: string;
-  score: number;
   className?: string;
 }
 
 export const MaturityLevelExplanation: React.FC<MaturityLevelExplanationProps> = ({
   level,
-  label,
-  score,
   className = ''
 }) => {
   const getLevelExplanation = (level: number) => {

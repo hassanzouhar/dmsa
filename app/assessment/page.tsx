@@ -10,14 +10,22 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, BarChart3, CheckCircle2, AlertCircle, Save, Cloud } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BarChart3, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function AssessmentPage() {
   const router = useRouter();
   const [isInitialized, setIsInitialized] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [companyDetails, setCompanyDetails] = useState<{
+    companyName: string;
+    naceSector: string;
+    companySize: string;
+    country: string;
+    zipCode?: string;
+  } | null>(null);
+  // Auto-save state (currently unused but prepared for future implementation)
+  const [, setLastSaved] = useState<Date | null>(null);
+  const [, setIsSaving] = useState(false);
   
   // Store state and actions
   const {
@@ -27,10 +35,12 @@ export default function AssessmentPage() {
     currentQuestionIndex,
     nextQuestion,
     previousQuestion,
-    setCurrentQuestionIndex,
     isLoading,
     error,
-    isCompleted
+    isCompleted,
+    surveySession,
+    saveResults,
+    isSavingResults
   } = useAssessmentStore();
   
   // Auto-save mechanism
@@ -71,13 +81,30 @@ export default function AssessmentPage() {
     };
   }, [spec, answers]);
   
-  // Initialize the assessment spec
+  // Initialize the assessment spec and check for company details
   useEffect(() => {
     if (!spec && !isLoading) {
+      // Check if we have company details from the previous step
+      const storedCompanyDetails = localStorage.getItem('dma-company-details');
+      if (!storedCompanyDetails) {
+        // Redirect to company details if not present
+        router.push('/company-details');
+        return;
+      }
+      
+      try {
+        const details = JSON.parse(storedCompanyDetails);
+        setCompanyDetails(details);
+      } catch (error) {
+        console.error('Failed to parse company details:', error);
+        router.push('/company-details');
+        return;
+      }
+      
       setSpec(dmaNo_v1);
       setIsInitialized(true);
     }
-  }, [spec, isLoading, setSpec]);
+  }, [spec, isLoading, setSpec, router]);
 
   // Get current dimension info
   const currentDimension = spec?.dimensions.find(d => 
@@ -85,12 +112,12 @@ export default function AssessmentPage() {
   );
 
   // Navigation handlers
-  const handleNext = () => {
+  const handleNext = async () => {
     if (spec && currentQuestionIndex < spec.questions.length - 1) {
       nextQuestion();
     } else if (isCompleted) {
-      // Navigate to results if assessment is complete
-      router.push('/results');
+      // Save results and navigate
+      await handleSaveAndGoToResults();
     }
   };
 
@@ -100,14 +127,31 @@ export default function AssessmentPage() {
     }
   };
 
-  const handleGoToResults = () => {
-    router.push('/results');
+  const handleGoToResults = async () => {
+    await handleSaveAndGoToResults();
   };
 
-  // Question navigation (for jumping to specific questions)
-  const handleQuestionSelect = (index: number) => {
-    setCurrentQuestionIndex(index);
+  const handleSaveAndGoToResults = async () => {
+    if (!surveySession) {
+      // If no survey session, just navigate (fallback to legacy)
+      router.push('/results');
+      return;
+    }
+
+    const success = await saveResults();
+    if (success) {
+      // Navigate to results with the survey session
+      router.push(`/results?id=${surveySession.surveyId}&token=${surveySession.retrievalToken}`);
+    } else {
+      // Still allow navigation even if save failed (user can retry from results page)
+      router.push('/results');
+    }
   };
+
+  // Question navigation (prepared for future implementation)
+  // const handleQuestionSelect = (index: number) => {
+  //   setCurrentQuestionIndex(index);
+  // };
 
   if (!isInitialized || isLoading) {
     return (
@@ -166,7 +210,13 @@ export default function AssessmentPage() {
                     Digital Modenhetsvurdering (DMA)
                   </CardTitle>
                   <CardDescription>
-                    Vurder din bedrifts digitale modenhet på 6 nøkkeldimensjoner
+                    {companyDetails ? (
+                      <span>
+                        Vurdering for <strong>{companyDetails.companyName}</strong> • 6 nøkkeldimensjoner
+                      </span>
+                    ) : (
+                      'Vurder din bedrifts digitale modenhet på 6 nøkkeldimensjoner'
+                    )}
                   </CardDescription>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -179,29 +229,6 @@ export default function AssessmentPage() {
                       Fullført
                     </Badge>
                   )}
-                  
-                  {/* Auto-save indicator */}
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    {isSaving ? (
-                      <>
-                        <Save className="w-3 h-3 animate-pulse" />
-                        <span>Lagrer...</span>
-                      </>
-                    ) : lastSaved ? (
-                      <>
-                        <Cloud className="w-3 h-3 text-green-600" />
-                        <span>Auto-lagret {lastSaved.toLocaleTimeString('no-NO', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="w-3 h-3" />
-                        <span>Auto-lagring aktivert</span>
-                      </>
-                    )}
-                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -213,27 +240,6 @@ export default function AssessmentPage() {
                   <span>{Math.round(progress)}%</span>
                 </div>
                 <Progress value={progress} className="w-full h-3" />
-                
-                {/* Dimension progress indicators */}
-                <div className="grid grid-cols-6 gap-1 mt-2">
-                  {spec.dimensions.map((dimension, index) => {
-                    const dimensionQuestions = spec.questions.filter(q => q.dimensionId === dimension.id);
-                    const answeredQuestions = dimensionQuestions.filter(q => answers[q.id] !== undefined);
-                    const dimensionProgress = (answeredQuestions.length / dimensionQuestions.length) * 100;
-                    
-                    return (
-                      <div key={dimension.id} className="text-center">
-                        <div className={`h-2 rounded-full ${
-                          dimensionProgress === 100 ? 'bg-green-500' :
-                          dimensionProgress > 0 ? 'bg-blue-500' : 'bg-gray-200'
-                        }`} style={{ width: `${dimensionProgress}%` }}></div>
-                        <span className="text-xs text-muted-foreground mt-1 block">
-                          D{index + 1}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -297,82 +303,55 @@ export default function AssessmentPage() {
                   <span>Forrige</span>
                 </Button>
 
-                <div className="flex items-center space-x-2">
-                  {/* Question dots for navigation */}
-                  <div className="hidden md:flex items-center space-x-1">
-                    {spec.questions.slice(0, 11).map((q, index) => {
-                      const isAnswered = useAssessmentStore.getState().answers[q.id];
-                      const isCurrent = index === currentQuestionIndex;
-                      
-                      return (
-                        <button
-                          key={q.id}
-                          onClick={() => handleQuestionSelect(index)}
-                          className={`w-8 h-8 rounded-full text-xs font-medium transition-all ${
-                            isCurrent
-                              ? 'bg-primary text-white ring-2 ring-primary/30'
-                              : isAnswered
-                              ? 'bg-green-100 text-green-700 border border-green-200'
-                              : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200'
-                          }`}
-                          title={`Spørsmål ${index + 1}: ${q.title.substring(0, 50)}...`}
-                        >
-                          {index + 1}
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="text-center">
+                  <span className="text-sm text-muted-foreground">
+                    Spørsmål {currentQuestionIndex + 1} av {spec.questions.length}
+                  </span>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   {isLastQuestion && isCompleted && (
                     <Button
                       onClick={handleGoToResults}
+                      disabled={isSavingResults}
                       className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
                     >
-                      <BarChart3 className="w-4 h-4" />
-                      <span>Se resultater</span>
+                      {isSavingResults ? (
+                        <>
+                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          <span>Lagrer...</span>
+                        </>
+                      ) : (
+                        <>
+                          <BarChart3 className="w-4 h-4" />
+                          <span>Se resultater</span>
+                        </>
+                      )}
                     </Button>
                   )}
                   
                   <Button
                     onClick={handleNext}
-                    disabled={!canGoNext}
+                    disabled={!canGoNext || isSavingResults}
                     className="flex items-center space-x-2"
                   >
-                    <span>{isLastQuestion ? 'Fullfør' : 'Neste'}</span>
-                    <ArrowRight className="w-4 h-4" />
+                    {isSavingResults && isLastQuestion ? (
+                      <>
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        <span>Lagrer...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{isLastQuestion ? 'Fullfør' : 'Neste'}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Progress summary */}
-          <Card className="border-0 shadow-sm bg-muted/30">
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div>
-                  <div className="text-2xl font-bold text-primary">{spec.questions.length}</div>
-                  <div className="text-sm text-muted-foreground">Totale spørsmål</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-green-600">
-                    {Object.keys(useAssessmentStore.getState().answers).length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Besvarte</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-blue-600">{spec.dimensions.length}</div>
-                  <div className="text-sm text-muted-foreground">Dimensjoner</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-purple-600">{Math.round(progress)}%</div>
-                  <div className="text-sm text-muted-foreground">Fullført</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

@@ -1,21 +1,36 @@
 rules_version = '2';
 
-// Digital Maturity Assessment - Survey Storage Rules
-// Allow public read/write access to survey files for MVP
-// TODO: Restrict writes with authentication when app scales
+// Digital Maturity Assessment - Secure Storage Rules
+// Complete lockdown except for public assets
 service firebase.storage {
   match /b/{bucket}/o {
-    // Survey files: /surveys/{surveyId}
-    match /surveys/{surveyId} {
-      allow read, write: if true;
+    
+    // Public assets folder - read-only access
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false; // Only admin/server can upload public assets
     }
     
-    // Test files: /test/{anything}
+    // Development test files (if needed)
     match /test/{allPaths=**} {
-      allow read, write: if true;
+      // Only allow in non-production environments
+      // In production, this should be commented out
+      allow read, write: if true; 
     }
     
-    // Block everything else
+    // Legacy surveys folder - read-only for migration period
+    // TODO: Remove after migration is complete
+    match /surveys/{surveyId} {
+      allow read: if true; // Temporary for migration
+      allow write: if false; // No new survey writes to Storage
+    }
+    
+    // Archived data (admin access only)
+    match /archive/{allPaths=**} {
+      allow read, write: if false; // Admin SDK only
+    }
+    
+    // Default: deny everything else
     match /{allPaths=**} {
       allow read, write: if false;
     }

@@ -1,5 +1,4 @@
-import { doc, setDoc, increment, serverTimestamp, getDoc, collection, addDoc } from 'firebase/firestore';
-import { db } from './firebase';
+// Client-side analytics disabled - all tracking is server-side only
 
 // Types for analytics events
 export type AnalyticsEvent = 
@@ -40,98 +39,31 @@ export interface GlobalMetrics {
 }
 
 /**
- * Track an analytics event
+ * Track an analytics event (Client-side no-op - analytics now handled server-side)
  */
 export const trackEvent = async (
   event: AnalyticsEvent, 
   data: Partial<AnalyticsEventData> = {}
 ): Promise<void> => {
   try {
-    const eventData: AnalyticsEventData = {
-      timestamp: new Date().toISOString(),
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-      ...data,
-    };
-
-    // Add to events collection for detailed analysis
-    await addDoc(collection(db, 'analytics_events'), {
-      event,
-      ...eventData,
-      serverTimestamp: serverTimestamp(),
-    });
-
-    // Update global metrics
-    await updateGlobalMetrics(event, data);
-
-    console.log(`Analytics event tracked: ${event}`, eventData);
+    // Client-side analytics disabled in favor of server-side tracking
+    // All analytics events are now tracked via API endpoints
+    console.log(`Analytics event (client-side no-op): ${event}`, data);
   } catch (error) {
     console.error('Failed to track analytics event:', error);
     // Don't throw - analytics should never break the user experience
   }
 };
 
-/**
- * Update global metrics counters
- */
-const updateGlobalMetrics = async (
-  event: AnalyticsEvent, 
-  data: Partial<AnalyticsEventData>
-): Promise<void> => {
-  const metricsRef = doc(db, 'analytics', 'global_metrics');
-  
-  const updates: Record<string, unknown> = {
-    lastUpdated: serverTimestamp(),
-  };
-
-  switch (event) {
-    case 'assessment_started':
-      updates.totalAssessments = increment(1);
-      break;
-    case 'assessment_completed':
-      updates.completedAssessments = increment(1);
-      break;
-    case 'email_captured':
-      updates.emailCaptures = increment(1);
-      break;
-    case 'results_retrieved':
-      updates.retrievalAttempts = increment(1);
-      break;
-    case 'pdf_downloaded':
-      updates.pdfDownloads = increment(1);
-      break;
-    case 'json_exported':
-      updates.jsonExports = increment(1);
-      break;
-  }
-
-  if (Object.keys(updates).length > 1) { // More than just lastUpdated
-    await setDoc(metricsRef, updates, { merge: true });
-  }
-};
+// Global metrics updates are handled server-side only
 
 /**
- * Get current global metrics
+ * Get current global metrics (Client-side no-op - should use API endpoint)
  */
 export const getGlobalMetrics = async (): Promise<GlobalMetrics | null> => {
   try {
-    const metricsRef = doc(db, 'analytics', 'global_metrics');
-    const docSnap = await getDoc(metricsRef);
-    
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      return {
-        totalAssessments: data.totalAssessments || 0,
-        completedAssessments: data.completedAssessments || 0,
-        emailCaptures: data.emailCaptures || 0,
-        retrievalAttempts: data.retrievalAttempts || 0,
-        pdfDownloads: data.pdfDownloads || 0,
-        jsonExports: data.jsonExports || 0,
-        conversionRate: data.completedAssessments > 0 
-          ? (data.emailCaptures || 0) / data.completedAssessments 
-          : 0,
-        lastUpdated: data.lastUpdated?.toDate() || new Date(),
-      };
-    }
+    // No-op: Global metrics should be fetched via API endpoint if needed
+    console.log('Global metrics fetch (client-side no-op) - use API endpoint instead');
     return null;
   } catch (error) {
     console.error('Failed to get global metrics:', error);
@@ -298,7 +230,7 @@ export const initializeAnalytics = (): void => {
   }
 };
 
-export default {
+const analytics = {
   trackEvent,
   trackAssessmentCompletion,
   trackEmailCapture,
@@ -310,3 +242,5 @@ export default {
   getFunnelMetrics,
   initializeAnalytics,
 };
+
+export default analytics;

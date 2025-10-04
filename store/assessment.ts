@@ -6,6 +6,7 @@ import { AssessmentSpec, AnswerMap, AssessmentResults } from '@/types/assessment
 import { computeDimensionScores, computeOverallScore, calculateProgress, validateAnswers } from '@/lib/scoring';
 import { classify } from '@/lib/maturity';
 import { save, load, StorageKeys } from '@/lib/persistence';
+import { SurveySession, SessionStorage, completeSurvey } from '@/lib/survey-api';
 
 interface AssessmentState {
   // Core state
@@ -13,6 +14,10 @@ interface AssessmentState {
   answers: AnswerMap;
   currentQuestionIndex: number;
   isCompleted: boolean;
+  
+  // Survey session state
+  surveySession: SurveySession | null;
+  isSavingResults: boolean;
   
   // UI state
   isLoading: boolean;
@@ -30,6 +35,11 @@ interface AssessmentState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   
+  // Survey session management
+  setSurveySession: (session: SurveySession | null) => void;
+  saveResults: () => Promise<boolean>;
+  clearSession: () => void;
+  
   // Computed state getters
   getProgress: () => number;
   getValidationErrors: () => string[];
@@ -44,6 +54,8 @@ export const useAssessmentStore = create<AssessmentState>()(
     answers: {},
     currentQuestionIndex: 0,
     isCompleted: false,
+    surveySession: null,
+    isSavingResults: false,
     isLoading: false,
     error: null,
 
@@ -133,6 +145,62 @@ export const useAssessmentStore = create<AssessmentState>()(
     
     setError: (error) => set({ error }),
 
+    // Survey session management
+    setSurveySession: (session) => {
+      set({ surveySession: session });
+      if (session) {
+        SessionStorage.save(session);
+      } else {
+        SessionStorage.clear();
+      }
+    },
+
+    saveResults: async () => {
+      const { surveySession, answers, getResults } = get();
+      
+      if (!surveySession || !surveySession.surveyId) {
+        set({ error: 'No active survey session' });
+        return false;
+      }
+
+      const results = getResults();
+      if (!results) {
+        set({ error: 'No results to save' });
+        return false;
+      }
+
+      set({ isSavingResults: true, error: null });
+      
+      try {
+        const success = await completeSurvey(
+          surveySession.surveyId,
+          answers,
+          results,
+          surveySession.retrievalToken
+        );
+
+        if (success) {
+          set({ isSavingResults: false });
+          return true;
+        } else {
+          set({ error: 'Failed to save survey results', isSavingResults: false });
+          return false;
+        }
+      } catch (error) {
+        console.error('Error saving results:', error);
+        set({ 
+          error: error instanceof Error ? error.message : 'Failed to save results',
+          isSavingResults: false 
+        });
+        return false;
+      }
+    },
+
+    clearSession: () => {
+      SessionStorage.clear();
+      set({ surveySession: null });
+    },
+
     // Computed getters
     getProgress: () => {
       const { spec, answers } = get();
@@ -177,6 +245,12 @@ if (typeof window !== 'undefined') {
   const savedAnswers = load<AnswerMap>(StorageKeys.ASSESSMENT_ANSWERS);
   if (savedAnswers) {
     useAssessmentStore.getState().answers = savedAnswers;
+  }
+
+  // Restore survey session
+  const savedSession = SessionStorage.load();
+  if (savedSession) {
+    useAssessmentStore.getState().surveySession = savedSession;
   }
 
   // Subscribe to answers changes to auto-save

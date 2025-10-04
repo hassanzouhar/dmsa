@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessmentStore } from '@/store/assessment';
 import { computeDimensionScores, computeOverallScore } from '@/lib/scoring';
 import { RadarChart } from '@/components/charts/RadarChart';
@@ -18,25 +18,36 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   ArrowLeft, Download, BarChart3, TrendingUp, Unlock, Mail, Users, FileText,
-  Zap, Target, Lightbulb, Star, Copy, ExternalLink
+  Zap, Target, Lightbulb, Star, Copy, ExternalLink, AlertCircle
 } from 'lucide-react';
 import { classify } from '@/lib/maturity';
 import { useTranslation } from 'react-i18next';
-import { saveSurvey, updateSurveyUserDetails, exportSurveyData } from '@/lib/survey-service';
+import { dmaNo_v1 } from '@/data/questions.no';
+// New API imports
+import { getSurveyResults, upgradeSurveyToT1 } from '@/lib/survey-api';
+import { PublicResultsDocument, SurveyDocument } from '@/types/firestore-schema';
 import { SurveySubmission } from '@/types/assessment';
 import { toast } from 'sonner';
 import { TrackedPDFDownloadButton } from '@/components/TrackedPDFDownloadButton';
-import { trackAssessmentCompletion, trackEmailCapture, trackJSONExport } from '@/lib/analytics';
+import { trackEmailCapture, trackJSONExport } from '@/lib/analytics';
 import BenchmarkSection from '@/components/benchmark/BenchmarkSection';
 import ExtendedResultsModal from '@/components/modals/ExtendedResultsModal';
 
 export default function ResultsPage() {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Extract survey params from URL
+  const urlSurveyId = searchParams.get('id');
+  const urlToken = searchParams.get('token');
   
   // State management
-  const [isSaving, setIsSaving] = useState(false);
-  const [surveyId, setSurveyId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [surveyId, setSurveyId] = useState<string | null>(urlSurveyId);
+  const [retrievalToken, setRetrievalToken] = useState<string | null>(urlToken);
+  const [surveyData, setSurveyData] = useState<SurveyDocument | null>(null);
+  const [resultsData, setResultsData] = useState<PublicResultsDocument | null>(null);
   const [hasExpandedAccess, setHasExpandedAccess] = useState(false);
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
@@ -55,10 +66,104 @@ export default function ResultsPage() {
   const [showExtendedModal, setShowExtendedModal] = useState(false);
   
   // Store state
-  const { spec, answers, isCompleted } = useAssessmentStore();
+  const { spec, answers, isCompleted, surveySession } = useAssessmentStore();
   
-  // Compute results
+  // Load survey data - prioritize new API if token available
+  useEffect(() => {
+    const loadSurveyData = async () => {
+      setIsLoading(true);
+      
+      // If we have URL params (new API), try to fetch from new API first
+      if (urlSurveyId && urlToken) {
+        try {
+          console.log(`🔄 Loading survey from new API: ${urlSurveyId}`);
+          const results = await getSurveyResults(urlSurveyId, urlToken);
+          
+          if (results) {
+            setSurveyData(results.survey);
+            setResultsData(results.results);
+            setSurveyId(urlSurveyId);
+            setRetrievalToken(urlToken);
+            setHasExpandedAccess(results.hasExpandedAccess);
+            setIsLoading(false);
+            console.log(`✅ Loaded survey from new API`);
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to load from new API:', error);
+        }
+      }
+      
+      // Check survey session from store
+      if (surveySession && !urlSurveyId) {
+        setSurveyId(surveySession.surveyId);
+        setRetrievalToken(surveySession.retrievalToken);
+        // Try to load from new API using session data
+        try {
+          const results = await getSurveyResults(surveySession.surveyId, surveySession.retrievalToken);
+          if (results) {
+            setSurveyData(results.survey);
+            setResultsData(results.results);
+            setHasExpandedAccess(results.hasExpandedAccess);
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to load from survey session:', error);
+        }
+      }
+      
+      // If no URL params or new API failed, fall back to legacy behavior
+      console.log('📦 Falling back to legacy assessment store data');
+      setIsLoading(false);
+    };
+    
+    loadSurveyData();
+  }, [urlSurveyId, urlToken, surveySession]);
+  
+  // Load company details from localStorage if available (legacy support)
+  useEffect(() => {
+    const storedCompanyDetails = localStorage.getItem('dma-company-details');
+    if (storedCompanyDetails) {
+      try {
+        const companyDetails = JSON.parse(storedCompanyDetails);
+        setUserDetails(prev => ({
+          ...prev,
+          companyName: companyDetails.companyName || '',
+          sector: mapNACEToSector(companyDetails.naceSector) || '',
+          companySize: companyDetails.companySize || '',
+          region: companyDetails.zipCode || '',
+          country: companyDetails.country || ''
+        }));
+      } catch (error) {
+        console.error('Failed to parse stored company details:', error);
+      }
+    }
+  }, []);
+  
+  // Compute results - use new API data if available, otherwise compute from store
   const results = useMemo(() => {
+    // If we have results data from new API, use it directly
+    if (resultsData) {
+      const dimensionScores = Object.entries(resultsData.dimensions).map(([id, score]) => ({
+        id,
+        score: score.score,
+        target: score.target,
+        gap: score.gap
+      }));
+      
+      return {
+        dimensions: dimensionScores,
+        overall: resultsData.overall,
+        classification: {
+          level: resultsData.maturityClassification.level,
+          labelKey: resultsData.maturityClassification.label,
+          label: resultsData.maturityClassification.label,
+        }
+      };
+    }
+    
+    // Legacy computation from assessment store
     if (!spec) return null;
     
     const dimensionScores = computeDimensionScores(spec, answers);
@@ -70,72 +175,43 @@ export default function ResultsPage() {
       overall,
       classification
     };
-  }, [spec, answers]);
-
-  // Auto-save survey to Firebase when results are available
-  useEffect(() => {
-    const saveToFirebase = async () => {
-      if (!spec || !results || !isCompleted || surveyId || isSaving) {
-        return;
-      }
-      
-      setIsSaving(true);
-      try {
-        const surveyData: Omit<SurveySubmission, 'id'> = {
-          version: spec.version,
-          language: spec.language,
-          timestamp: new Date().toISOString(),
-          answers,
-          scores: {
-            dimensions: results.dimensions.reduce((acc, dim) => {
-              const dimensionSpec = spec.dimensions.find(d => d.id === dim.id);
-              acc[dim.id] = {
-                score: Math.round(dim.score),
-                target: dimensionSpec?.targetLevel ? Math.round(dimensionSpec.targetLevel * 100) : 0,
-                gap: dim.gap ? Math.round(dim.gap) : 0
-              };
-              return acc;
-            }, {} as SurveySubmission['scores']['dimensions']),
-            overall: Math.round(results.overall),
-            maturityClassification: {
-              level: results.classification?.level || 0,
-              label: results.classification ? t(results.classification.labelKey) : 'Unknown',
-              band: results.classification?.band || 'unknown'
-            }
-          }
-        };
-        
-        const id = await saveSurvey(surveyData);
-        setSurveyId(id);
-        
-        // Track assessment completion
-        await trackAssessmentCompletion(
-          id,
-          new Date(Date.now() - 60000), // Approximate start time
-          spec.version,
-          spec.language
-        );
-        
-        toast.success('Assessment saved successfully!', {
-          description: `Your unique ID is: ${id}`
-        });
-      } catch (error) {
-        console.error('Failed to save survey:', error);
-        toast.error('Failed to save assessment. You can still view your results.');
-      } finally {
-        setIsSaving(false);
-      }
-    };
-    
-    saveToFirebase();
-  }, [spec, results, isCompleted, answers, surveyId, isSaving, t]);
+  }, [spec, answers, resultsData]);
   
-  // Redirect if assessment not completed
+  // Helper function to map NACE sector codes to simple sector names
+  const mapNACEToSector = (naceCode: string): string => {
+    const sectorMap: Record<string, string> = {
+      'A': 'other',     // Agriculture
+      'B': 'other',     // Mining
+      'C': 'manufacturing', // Manufacturing
+      'D': 'other',     // Electricity/gas
+      'E': 'other',     // Water/waste
+      'F': 'other',     // Construction
+      'G': 'retail',    // Wholesale/retail
+      'H': 'other',     // Transportation
+      'I': 'services',  // Accommodation/food
+      'J': 'services',  // Information/communication
+      'K': 'services',  // Financial
+      'L': 'services',  // Real estate
+      'M': 'services',  // Professional/scientific
+      'N': 'services',  // Administrative
+      'O': 'government', // Public administration
+      'P': 'education', // Education
+      'Q': 'healthcare', // Health/social work
+      'R': 'services',  // Arts/entertainment
+      'S': 'services',  // Other services
+      'T': 'other',     // Households
+      'U': 'government' // Extraterritorial
+    };
+    return sectorMap[naceCode] || 'other';
+  };
+
+  // Redirect if no survey data is available after loading
   useEffect(() => {
-    if (!spec || !isCompleted) {
+    if (!isLoading && !surveyData && !spec) {
+      console.log('No survey data available, redirecting to assessment');
       router.push('/assessment');
     }
-  }, [spec, isCompleted, router]);
+  }, [surveyData, spec, isLoading, router]);
 
   // Handle email capture and unlock expanded results
   const handleUnlockExpanded = async () => {
@@ -143,7 +219,24 @@ export default function ResultsPage() {
     
     setIsSubmittingDetails(true);
     try {
-      const success = await updateSurveyUserDetails(surveyId, userDetails);
+      let success = false;
+      
+      // Use new API if available
+      if (retrievalToken) {
+        success = await upgradeSurveyToT1(
+          surveyId,
+          {
+            email: userDetails.email,
+            contactName: userDetails.companyName,
+          },
+          retrievalToken
+        );
+      } else {
+        console.error('No retrieval token available');
+        toast.error('Cannot upgrade survey without retrieval token');
+        success = false;
+      }
+      
       if (success) {
         setHasExpandedAccess(true);
         setShowEmailCapture(false);
@@ -158,6 +251,20 @@ export default function ResultsPage() {
         toast.success('Expanded results unlocked!', {
           description: 'You now have access to detailed insights and benchmarks.'
         });
+        
+        // Reload data to get updated access
+        if (retrievalToken) {
+          try {
+            const results = await getSurveyResults(surveyId, retrievalToken);
+            if (results) {
+              setSurveyData(results.survey);
+              setResultsData(results.results);
+              setHasExpandedAccess(results.hasExpandedAccess);
+            }
+          } catch (error) {
+            console.error('Failed to reload survey data:', error);
+          }
+        }
       } else {
         toast.error('Failed to unlock expanded results. Please try again.');
       }
@@ -177,14 +284,14 @@ export default function ResultsPage() {
     }
   };
 
-  // Handle export with Firebase integration
+  // Handle export with inline functionality
   const handleExport = async () => {
     if (!results || !spec || !surveyId) return;
     
     // Track JSON export
     await trackJSONExport(surveyId, hasExpandedAccess);
     
-    const surveyData: SurveySubmission = {
+    const surveyData = {
       id: surveyId,
       version: spec.version,
       language: spec.language,
@@ -199,22 +306,58 @@ export default function ResultsPage() {
             gap: dim.gap ? Math.round(dim.gap) : 0
           };
           return acc;
-        }, {} as SurveySubmission['scores']['dimensions']),
+        }, {} as Record<string, { score: number; target: number; gap: number }>),
         overall: Math.round(results.overall),
         maturityClassification: {
           level: results.classification?.level || 0,
           label: results.classification ? t(results.classification.labelKey) : 'Unknown',
-          band: results.classification?.band || 'unknown'
+          band: `level-${results.classification?.level || 0}`
         }
       },
       userDetails: hasExpandedAccess ? userDetails : undefined
     };
     
-    exportSurveyData(surveyData, 'json');
+    // Inline export functionality (replacing legacy exportSurveyData)
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `dma-survey-${surveyData.id}-${timestamp}.json`;
+    const dataStr = JSON.stringify(surveyData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', filename);
+    linkElement.style.display = 'none';
+    document.body.appendChild(linkElement);
+    linkElement.click();
+    document.body.removeChild(linkElement);
+    
+    toast.success('Survey data exported successfully!');
   };
 
-  // Create survey data for PDF export (only when expanded access is available)
-  const surveyData: SurveySubmission | null = useMemo(() => {
+  // Create survey data for PDF export (only when expanded access is available)  
+  const pdfSurveyData = useMemo(() => {
+    // If using new schema, convert the existing surveyData and resultsData
+    if (surveyData && resultsData && hasExpandedAccess) {
+      return {
+        id: surveyData.id,
+        version: surveyData.surveyVersion,
+        language: surveyData.language,
+        timestamp: surveyData.createdAt,
+        answers: {}, // Answers not available in this format
+        scores: {
+          dimensions: resultsData.dimensions,
+          overall: resultsData.overall,
+          maturityClassification: resultsData.maturityClassification
+        },
+        userDetails: {
+          companyName: surveyData.companyDetails.companyName,
+          companySize: surveyData.companyDetails.companySize,
+          sector: surveyData.companyDetails.sector
+        }
+      };
+    }
+    
+    // Legacy mode - compute from store data
     if (!results || !spec || !surveyId || !hasExpandedAccess) return null;
     
     return {
@@ -232,19 +375,20 @@ export default function ResultsPage() {
             gap: dim.gap ? Math.round(dim.gap) : 0
           };
           return acc;
-        }, {} as SurveySubmission['scores']['dimensions']),
+        }, {} as Record<string, { score: number; target: number; gap: number }>),
         overall: Math.round(results.overall),
         maturityClassification: {
           level: results.classification?.level || 0,
           label: results.classification ? t(results.classification.labelKey) : 'Unknown',
-          band: results.classification?.band || 'unknown'
+          band: `level-${results.classification?.level || 0}`
         }
       },
       userDetails: hasExpandedAccess ? userDetails : undefined
     };
-  }, [results, spec, surveyId, hasExpandedAccess, answers, userDetails, t]);
+  }, [results, spec, surveyId, hasExpandedAccess, answers, userDetails, t, surveyData, resultsData]);
 
-  if (!spec || !results || !isCompleted) {
+  // Show loading state
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="container mx-auto px-4 py-8">
@@ -254,7 +398,7 @@ export default function ResultsPage() {
                 <div className="text-center space-y-4">
                   <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
                   <p className="text-muted-foreground">
-                    {isSaving ? 'Saving your assessment...' : 'Loading results...'}
+                    Loading your assessment results...
                   </p>
                 </div>
               </CardContent>
@@ -264,9 +408,32 @@ export default function ResultsPage() {
       </div>
     );
   }
+  
+  // Show error if no results available  
+  if (!results) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <Alert className="border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                No results available for this survey. The assessment may not be completed yet.
+                <div className="mt-2">
+                  <Button onClick={() => router.push('/assessment')} variant="outline" size="sm">
+                    Go to Assessment
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const overallPercentage = Math.round(results.overall);
-  const classification = results.classification;
+  const overallPercentage = Math.round(results?.overall || 0);
+  const classification = results?.classification;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -301,7 +468,7 @@ export default function ResultsPage() {
                   🎉 Assessment Complete!
                 </CardTitle>
                 <CardDescription className="text-lg">
-                  Here's your Digital Maturity Assessment results
+                  Here&apos;s your Digital Maturity Assessment results
                 </CardDescription>
               </div>
             </CardHeader>
@@ -360,16 +527,16 @@ export default function ResultsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <DimensionGaugesGrid 
-                  dimensions={results.dimensions.map(dimension => ({
-                    id: dimension.id,
-                    score: Math.round(dimension.score),
-                    target: dimension.target ? Math.round(dimension.target) : Math.round(dimension.score * 1.2),
-                    gap: dimension.gap ? Math.round(dimension.gap) : 0
-                  }))}
-                  dimensionSpecs={spec.dimensions}
-                  showDetails={false}
-                  compactMode={true}
+                  <DimensionGaugesGrid 
+                    dimensions={(results?.dimensions || []).map(dimension => ({
+                      id: dimension.id,
+                      score: Math.round(dimension.score),
+                      target: dimension.target ? Math.round(dimension.target) : Math.round(dimension.score * 1.2),
+                      gap: dimension.gap ? Math.round(dimension.gap) : 0
+                    }))}
+                    dimensionSpecs={(spec || dmaNo_v1).dimensions}
+                    showDetails={false}
+                    compactMode={true}
                   className="max-h-80 overflow-hidden relative"
                 />
                 <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none" />
@@ -385,8 +552,6 @@ export default function ResultsPage() {
           {/* Maturity Level Explanation */}
           <MaturityLevelExplanation
             level={classification?.level || 0}
-            label={classification ? t(classification.labelKey) : 'Unknown'}
-            score={overallPercentage}
             className="shadow-lg"
           />
 
@@ -469,13 +634,20 @@ export default function ResultsPage() {
                             value={userDetails.companyName}
                             onChange={(e) => setUserDetails(prev => ({ ...prev, companyName: e.target.value }))}
                             placeholder="Your Company Ltd"
+                            readOnly={!!userDetails.companyName && userDetails.companyName.length > 0}
+                            className={userDetails.companyName ? 'bg-gray-50 text-gray-700' : ''}
                           />
+                          {userDetails.companyName && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Pre-filled from company details
+                            </p>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label htmlFor="sector">Sector</Label>
                             <Select value={userDetails.sector} onValueChange={(value) => setUserDetails(prev => ({ ...prev, sector: value }))}>
-                              <SelectTrigger>
+                              <SelectTrigger className={userDetails.sector ? 'bg-gray-50' : ''}>
                                 <SelectValue placeholder="Select..." />
                               </SelectTrigger>
                               <SelectContent>
@@ -488,11 +660,16 @@ export default function ResultsPage() {
                                 <SelectItem value="other">Other</SelectItem>
                               </SelectContent>
                             </Select>
+                            {userDetails.sector && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Pre-filled from company details
+                              </p>
+                            )}
                           </div>
                           <div>
                             <Label htmlFor="size">Company Size</Label>
                             <Select value={userDetails.companySize} onValueChange={(value) => setUserDetails(prev => ({ ...prev, companySize: value }))}>
-                              <SelectTrigger>
+                              <SelectTrigger className={userDetails.companySize ? 'bg-gray-50' : ''}>
                                 <SelectValue placeholder="Select..." />
                               </SelectTrigger>
                               <SelectContent>
@@ -502,6 +679,11 @@ export default function ResultsPage() {
                                 <SelectItem value="large">250+ employees</SelectItem>
                               </SelectContent>
                             </Select>
+                            {userDetails.companySize && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Pre-filled from company details
+                              </p>
+                            )}
                           </div>
                         </div>
                         <Button 
@@ -543,8 +725,8 @@ export default function ResultsPage() {
                 </CardHeader>
                 <CardContent>
                   <RadarChart 
-                    data={results.dimensions.map(dimension => {
-                      const dimensionSpec = spec.dimensions.find(d => d.id === dimension.id);
+                    data={(results?.dimensions || []).map(dimension => {
+                      const dimensionSpec = (spec || dmaNo_v1).dimensions.find(d => d.id === dimension.id);
                       return {
                         dimension: dimensionSpec?.name || dimension.id,
                         score: Math.round(dimension.score),
@@ -568,13 +750,13 @@ export default function ResultsPage() {
                 </CardHeader>
                 <CardContent>
                   <DimensionGaugesGrid 
-                    dimensions={results.dimensions.map(dimension => ({
+                    dimensions={(results?.dimensions || []).map(dimension => ({
                       id: dimension.id,
                       score: Math.round(dimension.score),
                       target: dimension.target ? Math.round(dimension.target) : Math.round(dimension.score * 1.2),
                       gap: dimension.gap ? Math.round(dimension.gap) : 0
                     }))}
-                    dimensionSpecs={spec.dimensions}
+                    dimensionSpecs={(spec || dmaNo_v1).dimensions}
                     showDetails={true}
                     compactMode={false}
                   />
@@ -582,10 +764,14 @@ export default function ResultsPage() {
               </Card>
 
               {/* Benchmark Comparison */}
-              {surveyData && (
+              {surveyData && results && (
                 <Card className="shadow-lg">
                   <CardContent className="p-8">
-                    <BenchmarkSection surveyData={surveyData} />
+                    <BenchmarkSection 
+                      company={surveyData.companyDetails}
+                      dimensions={resultsData?.dimensions || {}}
+                      overallScore={results.overall}
+                    />
                   </CardContent>
                 </Card>
               )}
@@ -668,10 +854,10 @@ export default function ResultsPage() {
                 </Button>
               )}
               
-              {hasExpandedAccess && surveyData ? (
+              {hasExpandedAccess && pdfSurveyData ? (
                 <div className="flex items-center gap-2">
                   <TrackedPDFDownloadButton 
-                    surveyData={surveyData}
+                    surveyData={pdfSurveyData}
                     className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium gap-2 transition-colors"
                   >
                     <FileText className="w-4 h-4" />
@@ -702,7 +888,7 @@ export default function ResultsPage() {
                   <strong>Based on EU/JRC Digital Maturity Assessment Framework</strong>
                 </p>
                 <p className="text-xs text-blue-700">
-                  This assessment provides insights into your organization's digital maturity. 
+                  This assessment provides insights into your organization&apos;s digital maturity. 
                   Results should be used as a starting point for digital transformation planning.
                 </p>
                 {surveyId && (
@@ -719,12 +905,32 @@ export default function ResultsPage() {
       </div>
       
       {/* Extended Results Modal */}
-      {surveyData && (
+      {(pdfSurveyData || surveyData) && results && (
         <ExtendedResultsModal
           isOpen={showExtendedModal}
           onClose={() => setShowExtendedModal(false)}
-          surveyData={surveyData}
-          surveySpec={spec}
+          surveyData={{
+            id: surveyId || '',
+            version: surveyData?.surveyVersion || spec?.version || 'v1.0',
+            language: surveyData?.language || spec?.language || 'no',
+            timestamp: surveyData?.createdAt || new Date().toISOString(),
+            answers: answers || {},
+            scores: {
+              dimensions: resultsData?.dimensions || {},
+              overall: results.overall,
+              maturityClassification: resultsData?.maturityClassification || {
+                level: 1,
+                label: 'Basic',
+                band: 'basic'
+              }
+            },
+            userDetails: surveyData ? {
+              companyName: surveyData.companyDetails.companyName,
+              companySize: surveyData.companyDetails.companySize,
+              sector: surveyData.companyDetails.sector
+            } : undefined
+          } as SurveySubmission}
+          surveySpec={spec || dmaNo_v1}
           onShare={(surveyId) => {
             if (navigator.share) {
               navigator.share({

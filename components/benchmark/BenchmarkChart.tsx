@@ -54,8 +54,8 @@ const BenchmarkChart: React.FC<BenchmarkChartProps> = ({
 
   // Calculate bar positions (percentage of 100)
   const userPosition = Math.min(100, Math.max(0, userScore));
-  const averagePosition = Math.min(100, Math.max(0, benchmark.average));
-  const top25Position = Math.min(100, Math.max(0, benchmark.top25));
+  const averagePosition = Math.min(100, Math.max(0, benchmark.overall.average));
+  const top25Position = Math.min(100, Math.max(0, benchmark.overall.top25));
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
@@ -83,12 +83,12 @@ const BenchmarkChart: React.FC<BenchmarkChartProps> = ({
           <div 
             className="absolute top-0 bottom-0 w-0.5 bg-gray-400 z-10"
             style={{ left: `${averagePosition}%` }}
-            title={`Industry Average: ${benchmark.average}`}
+            title={`Industry Average: ${benchmark.overall.average}`}
           />
           <div 
             className="absolute top-0 bottom-0 w-0.5 bg-gray-600 z-10"
             style={{ left: `${top25Position}%` }}
-            title={`Top 25%: ${benchmark.top25}`}
+            title={`Top 25%: ${benchmark.overall.top25}`}
           />
           
           {/* User score bar */}
@@ -119,11 +119,11 @@ const BenchmarkChart: React.FC<BenchmarkChartProps> = ({
           </div>
           <div className="flex items-center gap-1">
             <div className="w-2 h-0.5 bg-gray-400"></div>
-            <span>Average: {benchmark.average}</span>
+            <span>Average: {benchmark.overall.average}</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-2 h-0.5 bg-gray-600"></div>
-            <span>Top 25%: {benchmark.top25}</span>
+            <span>Top 25%: {benchmark.overall.top25}</span>
           </div>
         </div>
       </div>

@@ -91,7 +91,7 @@ export function TriStateTable({
                 {stateOptions.map((option) => (
                   <td key={option.value} className="p-3 text-center">
                     <RadioGroup
-                      value={rowValue}
+                      value={rowValue || ''}
                       onValueChange={(val) => handleChange(row.id, val as 'yes' | 'partial' | 'no')}
                       disabled={disabled}
                       className="flex justify-center"

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, PDFDownloadLink, Font, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, PDFDownloadLink } from '@react-pdf/renderer';
 import { SurveySubmission } from '@/types/assessment';
 
 // Register fonts for better typography (optional)
@@ -351,7 +351,7 @@ export const PDFDownloadButton: React.FC<{
       fileName={fileName || defaultFileName}
       className={className}
     >
-      {({ blob, url, loading, error }) => {
+      {({ loading, error }) => {
         if (loading) return 'Generating PDF...';
         if (error) return 'Error generating PDF';
         return children;

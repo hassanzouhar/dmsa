@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, AlertCircle, Clock, Target } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 import { Question } from '@/types/assessment';
 
 interface ValidationFeedbackProps {
@@ -19,7 +18,7 @@ export const ValidationFeedback: React.FC<ValidationFeedbackProps> = ({
   answer,
   isValid,
   completionPercentage = 0,
-  showTips = true
+  // showTips = true // Currently unused but prepared for future tips display
 }) => {
   // Determine answer status
   const getAnswerStatus = () => {
@@ -53,9 +52,10 @@ export const ValidationFeedback: React.FC<ValidationFeedbackProps> = ({
     };
   };
 
-  const { status, icon: StatusIcon, color, message } = getAnswerStatus();
+  const { status } = getAnswerStatus();
 
-  // Question-type specific tips
+  // Question-type specific tips (disabled for now)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getQuestionTips = () => {
     switch (question.type) {
       case 'checkboxes':
@@ -100,34 +100,11 @@ export const ValidationFeedback: React.FC<ValidationFeedbackProps> = ({
     }
   };
 
-  const questionTips = getQuestionTips();
+  // const questionTips = getQuestionTips(); // Prepared for future tips feature
 
   return (
     <div className="space-y-3">
-      {/* Answer Status */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <StatusIcon className={`w-4 h-4 text-${color}-600`} />
-          <span className={`text-sm font-medium text-${color}-800`}>{message}</span>
-          {completionPercentage > 0 && (
-            <Badge variant="outline" className={`text-xs text-${color}-700`}>
-              {Math.round(completionPercentage)}% complete
-            </Badge>
-          )}
-        </div>
-        
-        {/* Quality indicator based on answer comprehensiveness */}
-        {status === 'complete' && Array.isArray(answer) && (
-          <div className="flex items-center gap-1">
-            <Target className="w-3 h-3 text-blue-600" />
-            <span className="text-xs text-blue-600">
-              {answer.length > 3 ? 'Comprehensive' : answer.length > 1 ? 'Good coverage' : 'Basic'}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Validation Messages */}
+      {/* Only show validation for incomplete answers */}
       {status === 'incomplete' && (
         <Alert className="border-red-200 bg-red-50">
           <AlertCircle className="h-4 w-4 text-red-600" />
@@ -137,31 +114,7 @@ export const ValidationFeedback: React.FC<ValidationFeedbackProps> = ({
         </Alert>
       )}
 
-      {status === 'partial' && (
-        <Alert className="border-amber-200 bg-amber-50">
-          <AlertCircle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800 text-sm">
-            Consider if there are additional options that apply to your organization.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Question Tips */}
-      {showTips && questionTips && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <h5 className="font-semibold text-sm text-blue-900 mb-2 flex items-center gap-1">
-            <Target className="w-4 h-4" />
-            {questionTips.title}
-          </h5>
-          <ul className="text-xs text-blue-800 space-y-1">
-            {questionTips.tips.map((tip, index) => (
-              <li key={index}>• {tip}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Progress encouragement */}
+      {/* Single completion indicator - only when fully complete */}
       {status === 'complete' && completionPercentage === 100 && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-2">
           <div className="flex items-center gap-2 text-green-800">

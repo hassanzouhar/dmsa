@@ -87,7 +87,7 @@ export function ScaleTable({
                 {scales.map((_, index) => (
                   <td key={index} className="p-2 text-center">
                     <RadioGroup
-                      value={rowValue?.toString()}
+                      value={rowValue?.toString() || ''}
                       onValueChange={(val) => handleChange(row.id, parseInt(val, 10))}
                       disabled={disabled}
                       className="flex justify-center"
