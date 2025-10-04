@@ -17,9 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  ArrowLeft, Download, BarChart3, TrendingUp, AlertCircle, CheckCircle2, 
-  Copy, ExternalLink, Unlock, Mail, Building2, Users, MapPin, FileText,
-  Zap, Target, Lightbulb, Star
+  ArrowLeft, Download, BarChart3, TrendingUp, Unlock, Mail, Users, FileText,
+  Zap, Target, Lightbulb, Star, Copy, ExternalLink
 } from 'lucide-react';
 import { classify } from '@/lib/maturity';
 import { useTranslation } from 'react-i18next';
@@ -41,7 +40,6 @@ export default function ResultsPage() {
   const [hasExpandedAccess, setHasExpandedAccess] = useState(false);
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
-  const [assessmentStartTime] = useState(new Date()); // Track when results page loads
   
   // Form state for email capture
   const [userDetails, setUserDetails] = useState({
@@ -113,7 +111,7 @@ export default function ResultsPage() {
         // Track assessment completion
         await trackAssessmentCompletion(
           id,
-          assessmentStartTime,
+          new Date(Date.now() - 60000), // Approximate start time
           spec.version,
           spec.language
         );
@@ -215,30 +213,6 @@ export default function ResultsPage() {
     exportSurveyData(surveyData, 'json');
   };
 
-  if (!spec || !results || !isCompleted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
-            <Card>
-              <CardContent className="flex items-center justify-center p-12">
-                <div className="text-center space-y-4">
-                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-                  <p className="text-muted-foreground">
-                    {isSaving ? 'Saving your assessment...' : 'Loading results...'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const overallPercentage = Math.round(results.overall);
-  const classification = results.classification;
-
   // Create survey data for PDF export (only when expanded access is available)
   const surveyData: SurveySubmission | null = useMemo(() => {
     if (!results || !spec || !surveyId || !hasExpandedAccess) return null;
@@ -269,6 +243,30 @@ export default function ResultsPage() {
       userDetails: hasExpandedAccess ? userDetails : undefined
     };
   }, [results, spec, surveyId, hasExpandedAccess, answers, userDetails, t]);
+
+  if (!spec || !results || !isCompleted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <Card>
+              <CardContent className="flex items-center justify-center p-12">
+                <div className="text-center space-y-4">
+                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+                  <p className="text-muted-foreground">
+                    {isSaving ? 'Saving your assessment...' : 'Loading results...'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const overallPercentage = Math.round(results.overall);
+  const classification = results.classification;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -514,7 +512,7 @@ export default function ResultsPage() {
                           {isSubmittingDetails ? 'Unlocking...' : 'Unlock Complete Results'}
                         </Button>
                         <p className="text-xs text-muted-foreground text-center">
-                          We'll use your email only to send you assessment insights and digital maturity resources.
+                    We&apos;ll use your email only to send you assessment insights and digital maturity resources.
                         </p>
                       </div>
                     </DialogContent>
@@ -728,13 +726,15 @@ export default function ResultsPage() {
           surveyData={surveyData}
           surveySpec={spec}
           onShare={(surveyId) => {
-            navigator.share ? 
+            if (navigator.share) {
               navigator.share({
                 title: 'My Digital Maturity Assessment Results',
-                text: `Check out my digital maturity assessment results!`,
+                text: 'Check out my digital maturity assessment results!',
                 url: `${window.location.origin}/retrieve?id=${surveyId}`
-              }) :
+              });
+            } else {
               navigator.clipboard.writeText(`${window.location.origin}/retrieve?id=${surveyId}`);
+            }
           }}
           onEmailResults={() => setShowEmailCapture(true)}
         />

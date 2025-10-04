@@ -8,7 +8,7 @@ import { Question } from '@/types/assessment';
 
 interface ValidationFeedbackProps {
   question: Question;
-  answer: any;
+  answer: unknown;
   isValid: boolean;
   completionPercentage?: number;
   showTips?: boolean;

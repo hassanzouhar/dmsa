@@ -42,9 +42,10 @@ export const saveSurvey = async (data: Omit<SurveySubmission, 'id'>): Promise<st
 };
 
 /**
- * Retrieve survey data from Firebase Storage
+ * Retrieve survey data from Firebase Storage (server-side)
+ * Used directly by API routes to avoid circular dependencies
  */
-export const fetchSurvey = async (id: string): Promise<SurveySubmission | null> => {
+export const fetchSurveyFromStorage = async (id: string): Promise<SurveySubmission | null> => {
   try {
     const storageRef = ref(storage, `surveys/${id}.json`);
     const url = await getDownloadURL(storageRef);
@@ -56,6 +57,29 @@ export const fetchSurvey = async (id: string): Promise<SurveySubmission | null> 
     
     const data = await response.json();
     return data as SurveySubmission;
+  } catch (error) {
+    console.error('Error fetching survey from storage:', error);
+    return null;
+  }
+};
+
+/**
+ * Retrieve survey data via API route (client-side)
+ * Avoids CORS issues by proxying through Next.js API
+ */
+export const fetchSurvey = async (id: string): Promise<SurveySubmission | null> => {
+  try {
+    const response = await fetch(`/api/dma/results?respondentId=${id}`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null; // Survey not found
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const apiResponse = await response.json();
+    return apiResponse.data?.survey as SurveySubmission || null;
   } catch (error) {
     console.error('Error fetching survey:', error);
     return null;
@@ -71,7 +95,7 @@ export const updateSurveyUserDetails = async (
 ): Promise<boolean> => {
   try {
     // 1. Get existing data from storage
-    const existingData = await fetchSurvey(id);
+    const existingData = await fetchSurveyFromStorage(id);
     if (!existingData) {
       throw new Error('Survey not found');
     }

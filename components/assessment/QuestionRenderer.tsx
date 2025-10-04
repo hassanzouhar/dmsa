@@ -42,7 +42,7 @@ export function QuestionRenderer({
     if ('value' in answer) return answer.value !== undefined && answer.value !== null;
     if ('left' in answer || 'right' in answer) return answer.left || answer.right;
     if ('rows' in answer) {
-      const rows = answer.rows as Record<string, any>;
+      const rows = answer.rows as Record<string, unknown>;
       return Object.keys(rows).length > 0;
     }
     return true;

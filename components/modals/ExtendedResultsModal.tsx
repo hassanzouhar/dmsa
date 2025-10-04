@@ -24,7 +24,12 @@ interface ExtendedResultsModalProps {
   isOpen: boolean;
   onClose: () => void;
   surveyData: SurveySubmission;
-  surveySpec?: any; // Assessment specification
+  surveySpec?: {
+    dimensions: Array<{ id: string; name: string; description?: string }>;
+    questions: Array<{ id: string; dimensionId: string }>;
+    version: string;
+    language: string;
+  }; // Assessment specification
   onShare?: (surveyId: string) => void;
   onEmailResults?: () => void;
 }
@@ -367,7 +372,7 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
                         </p>
                         <div className="p-3 bg-blue-50 rounded-lg">
                           <p className="text-sm font-medium text-blue-800">
-                            💡 Your overall score of {overallScore}/100 places you in the "{maturityLevel.label}" category,
+                          💡 Your overall score of {overallScore}/100 places you in the &quot;{maturityLevel.label}&quot; category,
                             indicating {maturityLevel.level >= 3 ? 'strong' : maturityLevel.level >= 2 ? 'moderate' : 'developing'} digital capabilities.
                           </p>
                         </div>
@@ -386,7 +391,7 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
                             <strong>{dimensionNames[topDimension[0]]}</strong> - {topDimension[1].score}/100
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            This dimension shows your organization's strongest digital capabilities.
+                            This dimension shows your organization&apos;s strongest digital capabilities.
                           </p>
                         </div>
                         

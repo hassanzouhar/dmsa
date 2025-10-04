@@ -79,7 +79,7 @@ const updateGlobalMetrics = async (
 ): Promise<void> => {
   const metricsRef = doc(db, 'analytics', 'global_metrics');
   
-  const updates: Record<string, any> = {
+  const updates: Record<string, unknown> = {
     lastUpdated: serverTimestamp(),
   };
 

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Search, AlertCircle, CheckCircle2, Download, Clock, Building2, Mail } from 'lucide-react';
+import { ArrowLeft, Search, AlertCircle, CheckCircle2, Download, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useTranslation } from 'react-i18next';
@@ -18,7 +18,6 @@ import { toast } from 'sonner';
 import BenchmarkSection from '@/components/benchmark/BenchmarkSection';
 
 export default function RetrieveResultsPage() {
-  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [surveyId, setSurveyId] = useState('');

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchSurvey } from '@/lib/survey-service';
+import { fetchSurveyFromStorage } from '@/lib/survey-service';
 import { generateBenchmarkComparison } from '@/lib/benchmark-service';
 import { SurveySubmission } from '@/types/assessment';
 
@@ -25,12 +25,6 @@ interface DmaApiResponse {
   error?: DmaApiError;
 }
 
-interface DmaQueryParams {
-  respondentId: string;
-  snapshot?: 'T0' | 'T1' | 'T2';
-  includeBenchmark?: boolean;
-  format?: 'json' | 'summary';
-}
 
 /**
  * GET /api/dma/results
@@ -107,7 +101,7 @@ export async function GET(request: NextRequest) {
     const surveyId = snapshot ? `${respondentId}_${snapshot}` : respondentId;
 
     // Fetch survey data from Firebase
-    const surveyData = await fetchSurvey(surveyId);
+    const surveyData = await fetchSurveyFromStorage(surveyId);
 
     if (!surveyData) {
       return NextResponse.json({
@@ -241,7 +235,7 @@ export async function POST(request: NextRequest) {
     const results = await Promise.allSettled(
       respondentIds.map(async (respondentId: string) => {
         const surveyId = snapshot ? `${respondentId}_${snapshot}` : respondentId;
-        const surveyData = await fetchSurvey(surveyId);
+        const surveyData = await fetchSurveyFromStorage(surveyId);
         
         if (!surveyData) {
           throw new Error(`Survey not found: ${surveyId}`);
@@ -275,8 +269,15 @@ export async function POST(request: NextRequest) {
     );
 
     // Separate successful and failed results
-    const successful: any[] = [];
-    const failed: any[] = [];
+    const successful: Array<{
+      respondentId: string;
+      survey: SurveySubmission | Partial<SurveySubmission>;
+      benchmark?: ReturnType<typeof generateBenchmarkComparison>;
+    }> = [];
+    const failed: Array<{
+      respondentId: string;
+      error: string;
+    }> = [];
 
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
