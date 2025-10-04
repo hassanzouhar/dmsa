@@ -17,7 +17,7 @@ export interface CompanyDetails {
   companyName: string;
   companySize: 'micro' | 'small' | 'medium' | 'large'; // EU size categories
   nace: string; // NACE industry code
-  sector: 'manufacturing' | 'services' | 'retail' | 'healthcare' | 'education' | 'government' | 'other';
+  sector: 'manufacturing' | 'services' | 'retail' | 'healthcare' | 'education' | 'government' | 'finance' | 'other';
   region: string; // Geographic region
 }
 

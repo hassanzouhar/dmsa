@@ -19,11 +19,11 @@ export interface LeaderboardEntry {
   country: string;
   overallScore: number;
   dimensionScores: {
-    digitalBusinessStrategy: number;
+    digitalStrategy: number;
     digitalReadiness: number;
-    humanCentricDigitalization: number;
+    humanCentric: number;
     dataManagement: number;
-    automationAndAI: number;
+    automation: number;
     greenDigitalization: number;
   };
   completedAt: string;
@@ -40,11 +40,11 @@ export interface IndustryBenchmark {
   icon: string;
   description: string;
   dimensionAverages: {
-    digitalBusinessStrategy: number;
+    digitalStrategy: number;
     digitalReadiness: number;
-    humanCentricDigitalization: number;
+    humanCentric: number;
     dataManagement: number;
-    automationAndAI: number;
+    automation: number;
     greenDigitalization: number;
   };
 }
@@ -80,6 +80,11 @@ const SECTOR_LABELS: Record<string, { label: string; icon: string; description: 
     icon: '🏛️',
     description: 'Offentlig sektor'
   },
+  'finance': {
+    label: 'Finansiering og forsikring',
+    icon: '🏦',
+    description: 'Finanssektoren digitaliserer raskt'
+  },
   'other': {
     label: 'Annen tjenesteyting',
     icon: '💼',
@@ -87,12 +92,13 @@ const SECTOR_LABELS: Record<string, { label: string; icon: string; description: 
   }
 };
 
+
 /**
  * Fetch all completed surveys that are eligible for leaderboard
  */
 export async function getLeaderboardEntries(options: {
   sector?: string;
-  size?: 'micro' | 'small' | 'medium' | 'large';
+  size?: 'micro' | 'small' | 'medium' | 'large' | 'all';
   limit?: number;
 } = {}): Promise<LeaderboardEntry[]> {
   const db = getAdminFirestore();
@@ -138,11 +144,11 @@ export async function getLeaderboardEntries(options: {
       country: 'Norge', // Default for now
       overallScore: survey.scores.overall / 10, // Convert 0-100 to 0-10 scale
       dimensionScores: {
-        digitalBusinessStrategy: (survey.scores.dimensions.digitalBusinessStrategy?.score || 0) / 10,
+        digitalStrategy: (survey.scores.dimensions.digitalStrategy?.score || 0) / 10,
         digitalReadiness: (survey.scores.dimensions.digitalReadiness?.score || 0) / 10,
-        humanCentricDigitalization: (survey.scores.dimensions.humanCentricDigitalization?.score || 0) / 10,
+        humanCentric: (survey.scores.dimensions.humanCentric?.score || 0) / 10,
         dataManagement: (survey.scores.dimensions.dataManagement?.score || 0) / 10,
-        automationAndAI: (survey.scores.dimensions.automationAndAI?.score || 0) / 10,
+        automation: (survey.scores.dimensions.automation?.score || 0) / 10,
         greenDigitalization: (survey.scores.dimensions.greenDigitalization?.score || 0) / 10,
       },
       completedAt: survey.completedAt || survey.createdAt,
@@ -203,11 +209,11 @@ export async function getIndustryBenchmarks(minSampleSize: number = 3): Promise<
 
     // Calculate dimension averages
     const dimensionTotals = {
-      digitalBusinessStrategy: 0,
+      digitalStrategy: 0,
       digitalReadiness: 0,
-      humanCentricDigitalization: 0,
+      humanCentric: 0,
       dataManagement: 0,
-      automationAndAI: 0,
+      automation: 0,
       greenDigitalization: 0,
     };
 

@@ -68,7 +68,7 @@ const getPerformanceLevel = (score: number) => {
 // Get specific recommendations based on dimension and score
 const getDimensionRecommendations = (dimensionId: string, score: number): string[] => {
   const recommendations: Record<string, Record<string, string[]>> = {
-    digitalBusinessStrategy: {
+    digitalStrategy: {
       low: [
         'Develop a comprehensive digital transformation roadmap',
         'Establish digital governance and leadership structures',
@@ -102,7 +102,7 @@ const getDimensionRecommendations = (dimensionId: string, score: number): string
         'Drive innovation through emerging technologies'
       ]
     },
-    humanCentricDigitalization: {
+    humanCentric: {
       low: [
         'Prioritize employee digital literacy programs',
         'Implement user-friendly digital interfaces',
@@ -136,7 +136,7 @@ const getDimensionRecommendations = (dimensionId: string, score: number): string
         'Establish data monetization strategies'
       ]
     },
-    automationAndAI: {
+    automation: {
       low: [
         'Identify automation opportunities in key processes',
         'Develop AI readiness and capability assessment',

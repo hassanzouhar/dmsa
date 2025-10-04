@@ -25,12 +25,12 @@ interface DimensionGaugesGridProps {
 }
 
 // Dimension display configuration
-const dimensionConfig: Record<string, { 
-  displayName: string; 
+const dimensionConfig: Record<string, {
+  displayName: string;
   shortDescription: string;
-  icon?: string; 
+  icon?: string;
 }> = {
-  digitalBusinessStrategy: {
+  digitalStrategy: {
     displayName: 'Digital Business Strategy',
     shortDescription: 'Strategic alignment of digital initiatives with business objectives',
     icon: '🎯'
@@ -40,7 +40,7 @@ const dimensionConfig: Record<string, {
     shortDescription: 'Infrastructure, capabilities, and change readiness for digital transformation',
     icon: '⚡'
   },
-  humanCentricDigitalization: {
+  humanCentric: {
     displayName: 'Human-Centric Digitalization',
     shortDescription: 'Employee experience, digital skills, and inclusive digital design',
     icon: '👥'
@@ -50,7 +50,7 @@ const dimensionConfig: Record<string, {
     shortDescription: 'Data governance, integration, quality, and analytics capabilities',
     icon: '📊'
   },
-  automationAndAI: {
+  automation: {
     displayName: 'Automation & AI',
     shortDescription: 'Process automation, artificial intelligence, and intelligent systems',
     icon: '🤖'
@@ -71,11 +71,11 @@ export const DimensionGaugesGrid: React.FC<DimensionGaugesGridProps> = ({
 }) => {
   // Ensure we have all 6 dimensions
   const allDimensionIds = [
-    'digitalBusinessStrategy',
-    'digitalReadiness', 
-    'humanCentricDigitalization',
+    'digitalStrategy',
+    'digitalReadiness',
+    'humanCentric',
     'dataManagement',
-    'automationAndAI',
+    'automation',
     'greenDigitalization'
   ];
 

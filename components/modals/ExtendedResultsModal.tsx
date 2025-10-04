@@ -70,16 +70,6 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
     dataManagement: 'Data Management',
     automation: 'Automation and AI',
     greenDigitalization: 'Green Digitalization',
-    // Legacy benchmark dimension keys (if they appear)
-    digitalBusinessStrategy: 'Digital Business Strategy',
-    humanCentricDigitalization: 'Human-Centric Digitalization',
-    automationAndAI: 'Automation and AI',
-    // Snake_case format (if used in API)
-    digital_business_strategy: 'Digital Business Strategy',
-    digital_readiness: 'Digital Readiness',
-    human_centric: 'Human-Centric Digitalization',
-    data_management: 'Data Management',
-    automation_ai: 'Automation and AI',
     green_digitalization: 'Green Digitalization'
   };
   

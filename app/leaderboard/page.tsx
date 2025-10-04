@@ -39,11 +39,11 @@ interface LeaderboardEntry {
   country: string;
   overallScore: number;
   dimensionScores: {
-    digitalBusinessStrategy: number;
+    digitalStrategy: number;
     digitalReadiness: number;
-    humanCentricDigitalization: number;
+    humanCentric: number;
     dataManagement: number;
-    automationAndAI: number;
+    automation: number;
     greenDigitalization: number;
   };
   completedAt: string;
@@ -109,11 +109,11 @@ export default function LeaderboardPage() {
   ];
 
   const dimensionDetails = [
-    { key: 'digitalBusinessStrategy', name: 'Strategi', icon: <Target className="w-4 h-4" />, color: 'text-blue-600' },
+    { key: 'digitalStrategy', name: 'Strategi', icon: <Target className="w-4 h-4" />, color: 'text-blue-600' },
     { key: 'digitalReadiness', name: 'Evner', icon: <Zap className="w-4 h-4" />, color: 'text-green-600' },
-    { key: 'humanCentricDigitalization', name: 'Digitale evner', icon: <Users className="w-4 h-4" />, color: 'text-purple-600' },
+    { key: 'humanCentric', name: 'Digitale evner', icon: <Users className="w-4 h-4" />, color: 'text-purple-600' },
     { key: 'dataManagement', name: 'Data', icon: <Database className="w-4 h-4" />, color: 'text-orange-600' },
-    { key: 'automationAndAI', name: 'AI', icon: <Cpu className="w-4 h-4" />, color: 'text-red-600' },
+    { key: 'automation', name: 'AI', icon: <Cpu className="w-4 h-4" />, color: 'text-red-600' },
     { key: 'greenDigitalization', name: 'Grønn', icon: <Leaf className="w-4 h-4" />, color: 'text-emerald-600' }
   ];
 

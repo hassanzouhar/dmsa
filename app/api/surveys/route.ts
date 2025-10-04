@@ -19,8 +19,8 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 
 // Map NACE codes to simplified sectors
-function mapNACEToSector(nace: string): 'manufacturing' | 'services' | 'retail' | 'healthcare' | 'education' | 'government' | 'other' {
-  const sectorMap: Record<string, 'manufacturing' | 'services' | 'retail' | 'healthcare' | 'education' | 'government' | 'other'> = {
+function mapNACEToSector(nace: string): 'manufacturing' | 'services' | 'retail' | 'healthcare' | 'education' | 'government' | 'finance' | 'other' {
+  const sectorMap: Record<string, 'manufacturing' | 'services' | 'retail' | 'healthcare' | 'education' | 'government' | 'finance' | 'other'> = {
     'A': 'other',        // Agriculture, forestry and fishing
     'B': 'other',        // Mining and quarrying
     'C': 'manufacturing', // Manufacturing
@@ -31,7 +31,7 @@ function mapNACEToSector(nace: string): 'manufacturing' | 'services' | 'retail' 
     'H': 'other',        // Transportation and storage
     'I': 'services',     // Accommodation and food service activities
     'J': 'services',     // Information and communication
-    'K': 'services',     // Financial and insurance activities
+    'K': 'finance',      // Financial and insurance activities
     'L': 'services',     // Real estate activities
     'M': 'services',     // Professional, scientific and technical activities
     'N': 'services',     // Administrative and support service activities
@@ -43,7 +43,7 @@ function mapNACEToSector(nace: string): 'manufacturing' | 'services' | 'retail' 
     'T': 'other',        // Household activities as employers
     'U': 'government'    // Extraterritorial organisations and bodies
   };
-  
+
   return sectorMap[nace.charAt(0)?.toUpperCase()] || 'other';
 }
 

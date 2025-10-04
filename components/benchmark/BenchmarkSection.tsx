@@ -49,11 +49,11 @@ const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ company, dimensions
 
   // Dimension names mapping
   const dimensionNames: Record<string, string> = {
-    digitalBusinessStrategy: 'Digital Business Strategy',
+    digitalStrategy: 'Digital Business Strategy',
     digitalReadiness: 'Digital Readiness',
-    humanCentricDigitalization: 'Human-Centric Digitalization',
+    humanCentric: 'Human-Centric Digitalization',
     dataManagement: 'Data Management',
-    automationAndAI: 'Automation and AI',
+    automation: 'Automation and AI',
     greenDigitalization: 'Green Digitalization'
   };
 

@@ -33,11 +33,11 @@ const BENCHMARK_DATABASE: Record<string, BenchmarkData> = {
     region: 'europe',
     sampleSize: 145,
     dimensions: {
-      digitalBusinessStrategy: { average: 65, median: 68, top25: 78, top10: 85 },
+      digitalStrategy: { average: 65, median: 68, top25: 78, top10: 85 },
       digitalReadiness: { average: 58, median: 62, top25: 74, top10: 82 },
-      humanCentricDigitalization: { average: 62, median: 64, top25: 76, top10: 84 },
+      humanCentric: { average: 62, median: 64, top25: 76, top10: 84 },
       dataManagement: { average: 71, median: 73, top25: 81, top10: 88 },
-      automationAndAI: { average: 54, median: 56, top25: 69, top10: 79 },
+      automation: { average: 54, median: 56, top25: 69, top10: 79 },
       greenDigitalization: { average: 69, median: 72, top25: 80, top10: 86 }
     },
     overall: { average: 63, median: 66, top25: 76, top10: 84 },
@@ -49,11 +49,11 @@ const BENCHMARK_DATABASE: Record<string, BenchmarkData> = {
     region: 'europe',
     sampleSize: 89,
     dimensions: {
-      digitalBusinessStrategy: { average: 72, median: 75, top25: 83, top10: 89 },
+      digitalStrategy: { average: 72, median: 75, top25: 83, top10: 89 },
       digitalReadiness: { average: 68, median: 71, top25: 81, top10: 87 },
-      humanCentricDigitalization: { average: 70, median: 73, top25: 82, top10: 88 },
+      humanCentric: { average: 70, median: 73, top25: 82, top10: 88 },
       dataManagement: { average: 78, median: 80, top25: 87, top10: 92 },
-      automationAndAI: { average: 64, median: 67, top25: 78, top10: 85 },
+      automation: { average: 64, median: 67, top25: 78, top10: 85 },
       greenDigitalization: { average: 75, median: 77, top25: 85, top10: 90 }
     },
     overall: { average: 71, median: 74, top25: 83, top10: 88 },
@@ -66,11 +66,11 @@ const BENCHMARK_DATABASE: Record<string, BenchmarkData> = {
     region: 'europe',
     sampleSize: 203,
     dimensions: {
-      digitalBusinessStrategy: { average: 69, median: 72, top25: 81, top10: 87 },
+      digitalStrategy: { average: 69, median: 72, top25: 81, top10: 87 },
       digitalReadiness: { average: 66, median: 69, top25: 79, top10: 85 },
-      humanCentricDigitalization: { average: 74, median: 76, top25: 84, top10: 89 },
+      humanCentric: { average: 74, median: 76, top25: 84, top10: 89 },
       dataManagement: { average: 68, median: 71, top25: 80, top10: 86 },
-      automationAndAI: { average: 59, median: 62, top25: 73, top10: 81 },
+      automation: { average: 59, median: 62, top25: 73, top10: 81 },
       greenDigitalization: { average: 72, median: 74, top25: 82, top10: 87 }
     },
     overall: { average: 68, median: 71, top25: 80, top10: 86 },
@@ -83,11 +83,11 @@ const BENCHMARK_DATABASE: Record<string, BenchmarkData> = {
     region: 'europe',
     sampleSize: 850,
     dimensions: {
-      digitalBusinessStrategy: { average: 66, median: 69, top25: 78, top10: 85 },
+      digitalStrategy: { average: 66, median: 69, top25: 78, top10: 85 },
       digitalReadiness: { average: 62, median: 65, top25: 76, top10: 83 },
-      humanCentricDigitalization: { average: 68, median: 71, top25: 80, top10: 86 },
+      humanCentric: { average: 68, median: 71, top25: 80, top10: 86 },
       dataManagement: { average: 70, median: 73, top25: 82, top10: 88 },
-      automationAndAI: { average: 57, median: 60, top25: 72, top10: 81 },
+      automation: { average: 57, median: 60, top25: 72, top10: 81 },
       greenDigitalization: { average: 71, median: 74, top25: 82, top10: 87 }
     },
     overall: { average: 66, median: 69, top25: 78, top10: 85 },
@@ -135,22 +135,16 @@ export const getBenchmarkData = (
 
 /**
  * Map survey dimension IDs to benchmark dimension keys
+ * All dimension IDs are now harmonized to use spec IDs
  */
 const DIMENSION_MAPPING: Record<string, string> = {
-  // Survey dimension ID -> Benchmark dimension key (from questions.no.ts)
-  'digitalStrategy': 'digitalBusinessStrategy',
+  // Spec dimension IDs (no mapping needed, pass through)
+  'digitalStrategy': 'digitalStrategy',
   'digitalReadiness': 'digitalReadiness',
-  'humanCentric': 'humanCentricDigitalization',
+  'humanCentric': 'humanCentric',
   'dataManagement': 'dataManagement',
-  'automation': 'automationAndAI',
+  'automation': 'automation',
   'greenDigitalization': 'greenDigitalization',
-  // Legacy snake_case API versions (if they exist)
-  'digital_business_strategy': 'digitalBusinessStrategy',
-  'digital_readiness': 'digitalReadiness', 
-  'human_centric_digitalization': 'humanCentricDigitalization',
-  'data_management': 'dataManagement',
-  'automation_and_ai': 'automationAndAI',
-  'green_digitalization': 'greenDigitalization',
 };
 
 /**

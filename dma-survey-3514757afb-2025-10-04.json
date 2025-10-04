@@ -1,0 +1,204 @@
+{
+  "id": "3514757afb",
+  "version": "1.0.0",
+  "language": "no",
+  "timestamp": "2025-10-04T19:13:12.441Z",
+  "answers": {
+    "Q1": {
+      "type": "table-dual-checkboxes",
+      "rows": {
+        "product-service-design": {
+          "left": false,
+          "right": true
+        },
+        "project-planning": {
+          "left": false,
+          "right": true
+        },
+        "security-compliance": {
+          "left": false,
+          "right": true
+        },
+        "collaboration": {
+          "left": false,
+          "right": true
+        },
+        "inbound-logistics": {
+          "left": false,
+          "right": true
+        },
+        "marketing-sales": {
+          "left": false,
+          "right": true
+        },
+        "operations": {
+          "left": false,
+          "right": true
+        },
+        "administration": {
+          "left": false,
+          "right": true
+        },
+        "procurement": {
+          "left": false,
+          "right": true
+        },
+        "delivery": {
+          "left": false,
+          "right": true
+        }
+      }
+    },
+    "Q2": {
+      "type": "checkboxes",
+      "selected": [
+        "financial-resources",
+        "ict-infrastructure",
+        "ict-specialists",
+        "management-ready",
+        "departments-ready",
+        "customer-satisfaction"
+      ]
+    },
+    "Q3": {
+      "type": "checkboxes",
+      "selected": [
+        "management-systems",
+        "web-forms-blogs",
+        "e-marketing",
+        "e-commerce",
+        "e-government",
+        "remote-collaboration",
+        "live-chat-social",
+        "intranet"
+      ]
+    },
+    "Q4": {
+      "type": "scale-table",
+      "rows": {
+        "simulation-digital-twins": 4,
+        "vr-ar": 5,
+        "cad-cam": 5,
+        "manufacturing-execution": 5,
+        "iot-iiot": 4,
+        "blockchain": 5,
+        "additive-manufacturing": 5
+      }
+    },
+    "Q5": {
+      "type": "checkboxes",
+      "selected": [
+        "skills-assessment",
+        "experiential-learning",
+        "internships",
+        "external-training",
+        "subsidized-training",
+        "training-plan"
+      ]
+    },
+    "Q6": {
+      "type": "checkboxes",
+      "selected": [
+        "awareness",
+        "transparent-communication",
+        "autonomy-tools",
+        "flexible-work",
+        "support-team",
+        "involve-employees"
+      ]
+    },
+    "Q7": {
+      "type": "checkboxes",
+      "selected": [
+        "data-integration",
+        "real-time-access",
+        "systematic-analysis",
+        "external-enrichment",
+        "self-service-analytics",
+        "digital-storage"
+      ]
+    },
+    "Q8": {
+      "type": "checkboxes",
+      "selected": [
+        "business-continuity",
+        "backup-maintained",
+        "threat-monitoring",
+        "security-training",
+        "security-policies"
+      ]
+    },
+    "Q9": {
+      "type": "scale-table",
+      "rows": {
+        "nlp": 5,
+        "computer-vision": 5,
+        "speech-processing": 4,
+        "robotics": 5,
+        "business-intelligence": 5
+      }
+    },
+    "Q10": {
+      "type": "checkboxes",
+      "selected": [
+        "sustainable-production",
+        "emissions-management",
+        "sustainable-energy",
+        "responsible-consumption",
+        "paperless-processes",
+        "sustainable-products",
+        "sustainable-services"
+      ]
+    },
+    "Q11": {
+      "type": "tri-state-table",
+      "rows": {
+        "environmental-strategy": "yes",
+        "environmental-management": "yes",
+        "procurement-criteria": "yes",
+        "energy-monitoring": "yes",
+        "equipment-recycling": "yes"
+      }
+    }
+  },
+  "scores": {
+    "dimensions": {
+      "digitalStrategy": {
+        "score": 47,
+        "target": 100,
+        "gap": 53
+      },
+      "digitalReadiness": {
+        "score": 87,
+        "target": 100,
+        "gap": 13
+      },
+      "humanCentric": {
+        "score": 80,
+        "target": 100,
+        "gap": 20
+      },
+      "dataManagement": {
+        "score": 92,
+        "target": 100,
+        "gap": 8
+      },
+      "automation": {
+        "score": 96,
+        "target": 100,
+        "gap": 4
+      },
+      "greenDigitalization": {
+        "score": 85,
+        "target": 100,
+        "gap": 15
+      }
+    },
+    "overall": 81,
+    "maturityClassification": {
+      "level": 4,
+      "label": "maturity.level4",
+      "band": "level-4"
+    }
+  }
+}
