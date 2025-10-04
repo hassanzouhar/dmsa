@@ -39,3 +39,67 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Editor files
+*.swp
+*.swo
+*.tmp
+*~
+*.orig
+*.rej
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Firebase
+.firebase/
+.firebaserc
+firebase-debug.log
+firebase-debug.*.log
+
+# Local development
+*.local
+.env.backup
+.env.production
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Logs
+*.log
+logs/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.eslintcache
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Test coverage
+.nyc_output/
+coverage/
+*.lcov
+
+# Documentation
+/docs/build/
+
+# Temporary folders
+tmp/
+temp/

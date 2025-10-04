@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { ValidationFeedback } from './ValidationFeedback';
 
 interface QuestionRendererProps {
   question: Question;
@@ -33,6 +34,29 @@ export function QuestionRenderer({
   
   const isRequired = question.required !== false;
   const hasAnswer = !!answer;
+  
+  // Calculate answer validation and completion
+  const isAnswerValid = () => {
+    if (!answer) return false;
+    if ('selected' in answer) return answer.selected && answer.selected.length > 0;
+    if ('value' in answer) return answer.value !== undefined && answer.value !== null;
+    if ('left' in answer || 'right' in answer) return answer.left || answer.right;
+    if ('rows' in answer) {
+      const rows = answer.rows as Record<string, any>;
+      return Object.keys(rows).length > 0;
+    }
+    return true;
+  };
+  
+  const getCompletionPercentage = () => {
+    if (!answer) return 0;
+    if ('selected' in answer) {
+      const totalOptions = question.type === 'checkboxes' && 'options' in question ? question.options.length : 1;
+      const selected = answer.selected as string[];
+      return Math.min(100, (selected.length / Math.max(1, totalOptions * 0.3)) * 100);
+    }
+    return isAnswerValid() ? 100 : 0;
+  };
 
   const handleTriStateChange = (value: 'yes' | 'partial' | 'no') => {
     setAnswer(question.id, { type: 'tri-state', value });
@@ -241,6 +265,17 @@ export function QuestionRenderer({
 
       <CardContent>
         {renderQuestionInput()}
+        
+        {/* Validation Feedback */}
+        <div className="mt-6 pt-4 border-t border-gray-100">
+          <ValidationFeedback
+            question={question}
+            answer={answer}
+            isValid={isAnswerValid()}
+            completionPercentage={getCompletionPercentage()}
+            showTips={true}
+          />
+        </div>
       </CardContent>
     </Card>
   );

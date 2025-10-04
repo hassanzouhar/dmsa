@@ -10,12 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, BarChart3, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BarChart3, CheckCircle2, AlertCircle, Save, Cloud } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function AssessmentPage() {
   const router = useRouter();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Store state and actions
   const {
@@ -30,6 +32,27 @@ export default function AssessmentPage() {
     error,
     isCompleted
   } = useAssessmentStore();
+  
+  // Auto-save mechanism
+  useEffect(() => {
+    const saveProgress = async () => {
+      if (Object.keys(answers).length > 0) {
+        setIsSaving(true);
+        // Simulate save delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        localStorage.setItem('dma-assessment-progress', JSON.stringify({
+          answers,
+          timestamp: new Date().toISOString(),
+          currentQuestionIndex
+        }));
+        setLastSaved(new Date());
+        setIsSaving(false);
+      }
+    };
+    
+    const timeoutId = setTimeout(saveProgress, 2000); // Auto-save after 2 seconds of inactivity
+    return () => clearTimeout(timeoutId);
+  }, [answers, currentQuestionIndex]);
   
   // Memoized computed state
   const progress = useMemo(() => {
@@ -156,17 +179,61 @@ export default function AssessmentPage() {
                       Fullført
                     </Badge>
                   )}
+                  
+                  {/* Auto-save indicator */}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    {isSaving ? (
+                      <>
+                        <Save className="w-3 h-3 animate-pulse" />
+                        <span>Lagrer...</span>
+                      </>
+                    ) : lastSaved ? (
+                      <>
+                        <Cloud className="w-3 h-3 text-green-600" />
+                        <span>Auto-lagret {lastSaved.toLocaleTimeString('no-NO', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="w-3 h-3" />
+                        <span>Auto-lagring aktivert</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               {/* Progress bar */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Fremgang</span>
                   <span>{Math.round(progress)}%</span>
                 </div>
-                <Progress value={progress} className="w-full" />
+                <Progress value={progress} className="w-full h-3" />
+                
+                {/* Dimension progress indicators */}
+                <div className="grid grid-cols-6 gap-1 mt-2">
+                  {spec.dimensions.map((dimension, index) => {
+                    const dimensionQuestions = spec.questions.filter(q => q.dimensionId === dimension.id);
+                    const answeredQuestions = dimensionQuestions.filter(q => answers[q.id] !== undefined);
+                    const dimensionProgress = (answeredQuestions.length / dimensionQuestions.length) * 100;
+                    
+                    return (
+                      <div key={dimension.id} className="text-center">
+                        <div className={`h-2 rounded-full ${
+                          dimensionProgress === 100 ? 'bg-green-500' :
+                          dimensionProgress > 0 ? 'bg-blue-500' : 'bg-gray-200'
+                        }`} style={{ width: `${dimensionProgress}%` }}></div>
+                        <span className="text-xs text-muted-foreground mt-1 block">
+                          D{index + 1}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </CardContent>
           </Card>
