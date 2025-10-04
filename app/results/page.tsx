@@ -17,9 +17,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
+import {
   ArrowLeft, Download, BarChart3, TrendingUp, Unlock, Mail, Users, FileText,
-  Zap, Target, Lightbulb, Star, Copy, ExternalLink, AlertCircle
+  Zap, Target, Lightbulb, Star, Copy, ExternalLink, AlertCircle, Trophy
 } from 'lucide-react';
 import { classify } from '@/lib/maturity';
 import { useTranslation } from 'react-i18next';
