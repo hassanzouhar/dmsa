@@ -66,7 +66,7 @@ export default function ResultsPage() {
   const [showExtendedModal, setShowExtendedModal] = useState(false);
   
   // Store state
-  const { spec, answers, isCompleted, surveySession } = useAssessmentStore();
+  const { spec, answers, surveySession } = useAssessmentStore();
   
   // Load survey data - prioritize new API if token available
   useEffect(() => {
