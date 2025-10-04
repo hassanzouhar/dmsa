@@ -284,7 +284,7 @@ export default function LeaderboardPage() {
               {filteredData.map((entry, index) => {
                 const score = selectedTab === 'overall'
                   ? entry.overallScore
-                  : entry.dimensionScores[selectedTab as keyof typeof entry.dimensionScores];
+                  : (entry.dimensionScores?.[selectedTab as keyof typeof entry.dimensionScores] ?? 0);
                 const level = getScoreLevel(score);
 
                 return (
@@ -332,7 +332,7 @@ export default function LeaderboardPage() {
                                 <span className="text-xs font-medium">{dim.name}</span>
                               </div>
                               <div className="text-sm font-semibold">
-                                {entry.dimensionScores[dim.key as keyof typeof entry.dimensionScores].toFixed(1)}
+                                {(entry.dimensionScores?.[dim.key as keyof typeof entry.dimensionScores] ?? 0).toFixed(1)}
                               </div>
                             </div>
                           ))}
