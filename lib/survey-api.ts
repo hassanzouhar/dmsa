@@ -103,7 +103,8 @@ export const completeSurvey = async (
   surveyId: string,
   answers: AnswerMap,
   results: AssessmentResults,
-  retrievalToken?: string
+  retrievalToken?: string,
+  isAnonymous?: boolean
 ): Promise<boolean> => {
   try {
     // This will be implemented as part of the complete survey API
@@ -117,6 +118,7 @@ export const completeSurvey = async (
       },
       body: JSON.stringify({
         answers,
+        isAnonymous,
         results: {
           dimensions: results.dimensions.reduce((acc, dim) => {
             acc[dim.id] = {
@@ -261,6 +263,39 @@ export const checkSurvey = async (
   } catch (error) {
     console.error('Error checking survey:', error);
     return null;
+  }
+};
+
+/**
+ * Update anonymous flag for leaderboard participation
+ */
+export const updateAnonymousFlag = async (
+  surveyId: string,
+  isAnonymous: boolean,
+  retrievalToken?: string
+): Promise<boolean> => {
+  try {
+    const response = await fetch(`/api/surveys/${surveyId}/complete`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${retrievalToken || ''}`,
+      },
+      body: JSON.stringify({
+        isAnonymous
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Failed to update anonymous flag:', response.status);
+      return false;
+    }
+
+    const apiResponse: ApiResponse = await response.json();
+    return apiResponse.success === true;
+  } catch (error) {
+    console.error('Error updating anonymous flag:', error);
+    return false;
   }
 };
 

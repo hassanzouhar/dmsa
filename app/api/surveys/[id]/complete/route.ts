@@ -40,7 +40,7 @@ export async function POST(
       );
     }
 
-    const { answers, results } = body;
+    const { answers, results, isAnonymous } = body;
 
     if (!answers || !results) {
       return NextResponse.json(
@@ -174,8 +174,10 @@ export async function POST(
     batch.update(surveyRef, {
       completedAt,
       overallScore: results.overall,
+      scores: publicResults, // Add full scores for leaderboard queries
       'flags.isCompleted': true,
       'flags.hasResults': true,
+      'flags.isAnonymous': isAnonymous || false,
     });
 
     // Save public results
@@ -245,13 +247,142 @@ export async function POST(
   }
 }
 
+// PATCH handler for updating anonymous flag
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { params } = context;
+    const resolvedParams = await params;
+    const surveyId = resolvedParams.id;
+
+    // Parse request body
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            error: 'Invalid JSON payload',
+            code: 'INVALID_JSON'
+          }
+        } as { success: false; error: ApiError },
+        { status: 400 }
+      );
+    }
+
+    const { isAnonymous } = body;
+
+    if (typeof isAnonymous !== 'boolean') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            error: 'isAnonymous must be a boolean',
+            code: 'INVALID_DATA'
+          }
+        } as { success: false; error: ApiError },
+        { status: 400 }
+      );
+    }
+
+    // Get authentication token
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '') || new URL(request.url).searchParams.get('token');
+
+    if (!token) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            error: 'Missing authentication token',
+            code: 'MISSING_TOKEN'
+          }
+        } as { success: false; error: ApiError },
+        { status: 401 }
+      );
+    }
+
+    // Get Firestore instance
+    const db = getAdminFirestore();
+
+    // Get survey document
+    const surveyDoc = await db.collection('surveys').doc(surveyId).get();
+
+    if (!surveyDoc.exists) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            error: 'Survey not found',
+            code: 'SURVEY_NOT_FOUND'
+          }
+        } as { success: false; error: ApiError },
+        { status: 404 }
+      );
+    }
+
+    const survey = surveyDoc.data() as SurveyDocument;
+
+    // Verify token
+    if (!verifyToken(token, survey.retrieval.tokenHash)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            error: 'Invalid access token',
+            code: 'INVALID_TOKEN'
+          }
+        } as { success: false; error: ApiError },
+        { status: 403 }
+      );
+    }
+
+    // Update anonymous flag
+    await db.collection('surveys').doc(surveyId).update({
+      'flags.isAnonymous': isAnonymous
+    });
+
+    console.log(`✅ Survey anonymous flag updated: ${surveyId} (isAnonymous: ${isAnonymous})`);
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          surveyId,
+          isAnonymous,
+        }
+      },
+      { status: 200 }
+    );
+
+  } catch (error) {
+    console.error('Update anonymous flag error:', error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          error: 'Internal server error',
+          code: 'INTERNAL_ERROR',
+          details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+        }
+      } as { success: false; error: ApiError },
+      { status: 500 }
+    );
+  }
+}
+
 // OPTIONS handler for CORS
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'POST, PATCH, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });

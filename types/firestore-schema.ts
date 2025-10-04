@@ -35,6 +35,7 @@ export interface SurveyFlags {
   isCompleted: boolean; // Assessment completed
   hasResults: boolean; // Results computed and stored
   hasExpandedAccess: boolean; // User provided email (T1 state)
+  isAnonymous?: boolean; // Participate anonymously in public leaderboard
 }
 
 // Retrieval token for secure access
@@ -57,6 +58,7 @@ export interface SurveyDocument {
   flags: SurveyFlags;
   overallScore?: number; // 0-100 overall maturity score
   retrieval: RetrievalToken;
+  scores?: PublicResultsDocument; // Full scores for leaderboard queries
 }
 
 // Dimension scores for results
