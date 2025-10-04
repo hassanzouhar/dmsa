@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   ArrowLeft, Download, BarChart3, TrendingUp, Unlock, Mail, Users, FileText,
   Zap, Target, Lightbulb, Star, Copy, ExternalLink, AlertCircle
@@ -24,7 +25,7 @@ import { classify } from '@/lib/maturity';
 import { useTranslation } from 'react-i18next';
 import { dmaNo_v1 } from '@/data/questions.no';
 // New API imports
-import { getSurveyResults, upgradeSurveyToT1 } from '@/lib/survey-api';
+import { getSurveyResults, upgradeSurveyToT1, updateAnonymousFlag } from '@/lib/survey-api';
 import { PublicResultsDocument, SurveyDocument } from '@/types/firestore-schema';
 import { SurveySubmission } from '@/types/assessment';
 import { toast } from 'sonner';
@@ -64,9 +65,13 @@ export default function ResultsPage() {
   
   // Extended modal state
   const [showExtendedModal, setShowExtendedModal] = useState(false);
-  
+
+  // Anonymous participation state
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isUpdatingAnonymous, setIsUpdatingAnonymous] = useState(false);
+
   // Store state
-  const { spec, answers, surveySession } = useAssessmentStore();
+  const { spec, answers, surveySession} = useAssessmentStore();
   
   // Load survey data - prioritize new API if token available
   useEffect(() => {
@@ -85,6 +90,7 @@ export default function ResultsPage() {
             setSurveyId(urlSurveyId);
             setRetrievalToken(urlToken);
             setHasExpandedAccess(results.hasExpandedAccess);
+            setIsAnonymous(results.survey.flags.isAnonymous || false);
             setIsLoading(false);
             console.log(`✅ Loaded survey from new API`);
             return;
@@ -281,6 +287,35 @@ export default function ResultsPage() {
     if (surveyId) {
       navigator.clipboard.writeText(surveyId);
       toast.success('Survey ID copied to clipboard!');
+    }
+  };
+
+  // Handle anonymous participation toggle
+  const handleAnonymousToggle = async (checked: boolean) => {
+    if (!surveyId || !retrievalToken) {
+      toast.error('Cannot update anonymous setting');
+      return;
+    }
+
+    setIsUpdatingAnonymous(true);
+    try {
+      const success = await updateAnonymousFlag(surveyId, checked, retrievalToken);
+
+      if (success) {
+        setIsAnonymous(checked);
+        toast.success(
+          checked
+            ? 'Your results will appear anonymously on the leaderboard'
+            : 'Your results will be hidden from the leaderboard'
+        );
+      } else {
+        toast.error('Failed to update anonymous setting');
+      }
+    } catch (error) {
+      console.error('Failed to update anonymous flag:', error);
+      toast.error('Failed to update anonymous setting');
+    } finally {
+      setIsUpdatingAnonymous(false);
     }
   };
 
@@ -879,7 +914,57 @@ export default function ResultsPage() {
               </Button>
             </div>
           </div>
-          
+
+          {/* Anonymous Participation Option */}
+          {surveyId && retrievalToken && (
+            <Card className="border-purple-200 bg-purple-50">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 pt-1">
+                    <Trophy className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <h3 className="font-semibold text-purple-900 mb-1">
+                        Bidra til bransjeinnsikt
+                      </h3>
+                      <p className="text-sm text-purple-800">
+                        Hjelp andre bedrifter ved å dele dine resultater anonymt på vår offentlige resultattavle.
+                        Dine resultater vil bidra til bransjebenchmarks uten å avsløre bedriftens identitet.
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="anonymous-participation"
+                        checked={isAnonymous}
+                        onCheckedChange={handleAnonymousToggle}
+                        disabled={isUpdatingAnonymous}
+                      />
+                      <label
+                        htmlFor="anonymous-participation"
+                        className="text-sm font-medium text-purple-900 cursor-pointer"
+                      >
+                        {isAnonymous
+                          ? '✓ Dine resultater vises anonymt på resultattavlen'
+                          : 'Vis mine resultater anonymt på resultattavlen'
+                        }
+                      </label>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-purple-700 border-purple-300 hover:bg-purple-100"
+                      onClick={() => router.push('/leaderboard')}
+                    >
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Se resultattavle
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Footer */}
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="pt-6">
