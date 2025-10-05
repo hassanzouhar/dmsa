@@ -6,6 +6,7 @@ import { useAssessmentStore } from '@/store/assessment';
 import { computeDimensionScores, computeOverallScore } from '@/lib/scoring';
 import { RadarChart } from '@/components/charts/RadarChart';
 import { DimensionGaugesGrid } from '@/components/charts/DimensionGaugesGrid';
+import { DimensionGauge } from '@/components/charts/DimensionGauge';
 import { HelpTooltip, MaturityLevelExplanation, InterpretationCard } from '@/components/ui/help-tooltip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,10 +16,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
-  ArrowLeft, BotOff, Download, BarChart3, TrendingUp, Mail, Users, FileText,
+  ArrowLeft, Download, BarChart3, TrendingUp, Mail, FileText,
   Target, Lightbulb, Puzzle, Star, Copy, ExternalLink, AlertCircle, Trophy, Building
 } from 'lucide-react';
 import { classify } from '@/lib/maturity';
@@ -627,18 +629,31 @@ export default function ResultsPage() {
           {surveyId && (
             <Alert className="border-primary/20 bg-primary/5">
               <Star className="h-4 w-4" />
-              <AlertDescription className="flex items-center justify-between">
-                <div>
-                  <strong>RapportID: </strong>
-                  <code className="bg-white px-2 py-1 rounded text-sm font-mono">{surveyId}</code>
-                  <span className="text-sm text-muted-foreground ml-2">
-                    <i>Du kan kopiere denne for å hente opp rapporten igjen senere.</i>
-                  </span>
+              <AlertDescription>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <strong>RapportID: </strong>
+                    <code className="bg-white px-2 py-1 rounded text-sm font-mono">{surveyId}</code>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      <i>Du kan kopiere denne for å hente opp rapporten igjen senere.</i>
+                    </span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={copySurveyId}>
+                    <Copy className="w-3 h-3 mr-1" />
+                    Kopiér
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={copySurveyId}>
-                  <Copy className="w-3 h-3 mr-1" />
-                  Kopiér
-                </Button>
+                <div className="text-sm text-muted-foreground">
+                  Har du flere vurderinger?{' '}
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-primary underline"
+                    onClick={() => router.push('/access')}
+                  >
+                    Logg inn for å se alle dine rapporter
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           )}
@@ -680,45 +695,48 @@ export default function ResultsPage() {
             </Card>
           </div>
 
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-primary" />
-                De seks dimensjonene
-                <HelpTooltip 
-                  title="De 6 digitale modenhetsområdene"
-                  content="Hver av de 6 dimensjonene representerer et kritisk aspekt av digital modenhet. Ved å analysere poengsummene for hver dimensjon kan du identifisere styrker og forbedringsområder i din digitale strategi."
-                  variant="help"
-                  size="sm"
-                />
-              </CardTitle>
-              <CardDescription>
-                Detaljert analyse alle dimensjonene.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="relative">
-                <DimensionGaugesGrid 
-                  dimensions={(results?.dimensions || []).map(dimension => ({
-                    id: dimension.id,
-                    score: Math.round(dimension.score),
-                    target: dimension.target ? Math.round(dimension.target) : Math.round(dimension.score * 1.2),
-                    gap: dimension.gap ? Math.round(dimension.gap) : 0
-                  }))}
-                  dimensionSpecs={(spec || dmaNo_v1).dimensions}
-                  showDetails={true}
-                  compactMode={true}
-                  className="max-h-80 overflow-hidden"
-                />
-                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none" />
-              </div>
-              <div className="text-center mt-4 pt-2 border-t border-gray-100">
-                <p className="text-sm text-muted-foreground">
-                  🔒 Lagre rapporten for å få tilgang.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Preview of dimensions - only show when locked */}
+          {!hasExpandedAccess && (
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  De seks dimensjonene
+                  <HelpTooltip
+                    title="De 6 digitale modenhetsområdene"
+                    content="Hver av de 6 dimensjonene representerer et kritisk aspekt av digital modenhet. Ved å analysere poengsummene for hver dimensjon kan du identifisere styrker og forbedringsområder i din digitale strategi."
+                    variant="help"
+                    size="sm"
+                  />
+                </CardTitle>
+                <CardDescription>
+                  Detaljert analyse alle dimensjonene.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative">
+                  <DimensionGaugesGrid
+                    dimensions={(results?.dimensions || []).map(dimension => ({
+                      id: dimension.id,
+                      score: Math.round(dimension.score),
+                      target: dimension.target ? Math.round(dimension.target) : Math.round(dimension.score * 1.2),
+                      gap: dimension.gap ? Math.round(dimension.gap) : 0
+                    }))}
+                    dimensionSpecs={(spec || dmaNo_v1).dimensions}
+                    showDetails={true}
+                    compactMode={true}
+                    className="max-h-80 overflow-hidden"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+                </div>
+                <div className="text-center mt-4 pt-2 border-t border-gray-100">
+                  <p className="text-sm text-muted-foreground">
+                    🔒 Lagre rapporten for å få tilgang.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           
            {/* Leaderboard Participation Option */}
@@ -732,12 +750,11 @@ export default function ResultsPage() {
                   <div className="flex-1 space-y-3">
                     <div>
                       <h3 className="font-semibold text-purple-900 mb-1">
-                        Bli en del av &quot;NM i Digitalisering&quot;!
+                        Vær med å løfte næringslivet - delta i resultattavlen!
                       </h3>
                       <p className="text-sm text-purple-800">
-                        Vi trenger mer fokus på praktisk bruk av teknologi for å øke digitaliseringsgraden i næringslivet!
-                        Som standard vises alle bedrifter anonymt på resultattavlen og bidrar til bransjestatistikk.
-                        Du kan når som helst velge å fjerne resultatene dine fra tavlen.
+                        Ved å inkludere dine resultater i vår offentlige resultattavle, bidrar du til en rikere bransjestatistikk som hjelper både din egen bedrift og andre med å forstå den digitale modenheten i næringslivet.
+                        Dine resultater vil alltid være anonyme og sikre.
                       </p>
                     </div>
                     <div className="space-y-3">
@@ -858,130 +875,192 @@ export default function ResultsPage() {
             </Card>
           )}
 
-          {/* Expanded Results - Only Show After Email Capture */}
+          {/* Expanded Results - Tabbed Navigation */}
           {hasExpandedAccess && (
-            <>
-              {/* Full Radar Chart */}
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    Complete Digital Maturity Profile
-                    <HelpTooltip 
-                      title="How to Read the Radar Chart"
-                      content="The radar chart shows your scores (blue line) across all 6 dimensions. The further from the center, the higher your maturity. Gray dots indicate target levels where available."
-                      variant="info"
-                      size="sm"
-                    />
-                  </CardTitle>
-                  <CardDescription>
-                    Your detailed assessment across all 6 dimensions
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <RadarChart 
-                    data={(results?.dimensions || []).map(dimension => {
-                      const dimensionSpec = (spec || dmaNo_v1).dimensions.find(d => d.id === dimension.id);
-                      return {
-                        dimension: dimensionSpec?.name || dimension.id,
-                        score: Math.round(dimension.score),
-                        target: dimensionSpec?.targetLevel ? Math.round(dimensionSpec.targetLevel * 100) : undefined,
-                        fullMark: 100
-                      };
-                    })}
-                    showTarget={true}
-                    className="shadow-md"
-                  />
-                </CardContent>
-              </Card>
+            <Card className="shadow-lg">
+              <CardContent className="pt-6">
+                <Tabs defaultValue="oversikt" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 mb-6">
+                    <TabsTrigger value="oversikt">
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Oversikt
+                    </TabsTrigger>
+                    <TabsTrigger value="dimensjoner">
+                      <Target className="w-4 h-4 mr-2" />
+                      Dimensjoner
+                    </TabsTrigger>
+                    <TabsTrigger value="sammenligning">
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Sammenligning
+                    </TabsTrigger>
+                    <TabsTrigger value="anbefalinger">
+                      <Lightbulb className="w-4 h-4 mr-2" />
+                      Anbefalinger
+                    </TabsTrigger>
+                  </TabsList>
 
-              {/* Detailed Dimension Analysis with Gauges */}
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle>Detailed Analysis & Recommendations</CardTitle>
-                  <CardDescription>
-                    Interactive dimension gauges with performance insights and improvement recommendations
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <DimensionGaugesGrid 
-                    dimensions={(results?.dimensions || []).map(dimension => ({
-                      id: dimension.id,
-                      score: Math.round(dimension.score),
-                      target: dimension.target ? Math.round(dimension.target) : Math.round(dimension.score * 1.2),
-                      gap: dimension.gap ? Math.round(dimension.gap) : 0
-                    }))}
-                    dimensionSpecs={(spec || dmaNo_v1).dimensions}
-                    showDetails={true}
-                    compactMode={false}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Benchmark Comparison */}
-              {surveyData && results && (
-                <Card className="shadow-lg">
-                  <CardContent className="p-8">
-                    <BenchmarkSection 
-                      company={surveyData.companyDetails}
-                      dimensions={resultsData?.dimensions || {}}
-                      overallScore={results.overall}
-                    />
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Interpretation and Next Steps */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <InterpretationCard
-                  title="Understanding Your Results"
-                  type="explanation"
-                  level="intermediate"
-                  content={
-                    <div className="space-y-3">
-                      <p>
-                        Your assessment results are based on the EU/JRC Digital Maturity Assessment framework, 
-                        which evaluates organizations across 6 critical dimensions of digital transformation.
+                  {/* Overview Tab */}
+                  <TabsContent value="oversikt" className="space-y-6">
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4">Fullstendig Digital Modenhets Profil</h3>
+                      <p className="text-muted-foreground mb-6">
+                        Din detaljerte vurdering på tvers av alle 6 dimensjoner
                       </p>
-                      <p>
-                        Each dimension score reflects your current capabilities and identifies gaps 
-                        to target maturity levels, providing a roadmap for digital improvement.
-                      </p>
-                      <div className="mt-4 p-3 bg-blue-100 rounded-lg">
-                        <p className="text-sm font-medium text-blue-800">
-                          💡 Pro Tip: Focus on dimensions with the largest gaps for maximum impact on your overall digital maturity.
-                        </p>
-                      </div>
+                      <RadarChart
+                        data={(results?.dimensions || []).map(dimension => {
+                          const dimensionSpec = (spec || dmaNo_v1).dimensions.find(d => d.id === dimension.id);
+                          return {
+                            dimension: dimensionSpec?.name || dimension.id,
+                            score: Math.round(dimension.score),
+                            target: dimensionSpec?.targetLevel ? Math.round(dimensionSpec.targetLevel * 100) : undefined,
+                            fullMark: 100
+                          };
+                        })}
+                        showTarget={true}
+                        className="shadow-md"
+                      />
                     </div>
-                  }
-                />
 
-                <InterpretationCard
-                  title="Recommended Next Steps"
-                  type="next-steps"
-                  level="basic"
-                  content={
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <h5 className="font-semibold text-sm">Immediate Actions:</h5>
-                        <ul className="text-sm space-y-1 ml-4">
-                          <li>• Review dimension-specific recommendations in the gauges above</li>
-                          <li>• Prioritize 2-3 dimensions with the largest improvement opportunities</li>
-                          <li>• Share these results with your digital transformation team</li>
-                        </ul>
-                      </div>
-                      <div className="space-y-2">
-                        <h5 className="font-semibold text-sm">Long-term Strategy:</h5>
-                        <ul className="text-sm space-y-1 ml-4">
-                          <li>• Develop a comprehensive digital transformation roadmap</li>
-                          <li>• Establish regular assessment cycles to track progress</li>
-                          <li>• Benchmark against industry peers and best practices</li>
-                        </ul>
-                      </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {(results?.dimensions || []).map(dimension => {
+                        const dimensionSpec = (spec || dmaNo_v1).dimensions.find(d => d.id === dimension.id);
+                        return (
+                          <Card key={dimension.id} className="border border-primary/20">
+                            <CardContent className="pt-4 text-center">
+                              <p className="text-sm font-medium text-muted-foreground mb-2">
+                                {dimensionSpec?.name || dimension.id}
+                              </p>
+                              <p className="text-3xl font-bold text-primary">
+                                {Math.round(dimension.score)}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
-                  }
-                />
-              </div>
-            </>
+                  </TabsContent>
+
+                  {/* Dimensions Tab with Accordion */}
+                  <TabsContent value="dimensjoner" className="space-y-4">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold">Detaljert Dimensjonsanalyse</h3>
+                      <p className="text-muted-foreground">
+                        Klikk på hver dimensjon for å se detaljert analyse og anbefalinger
+                      </p>
+                    </div>
+
+                    <Accordion type="single" collapsible className="w-full">
+                      {(results?.dimensions || []).map((dimension) => {
+                        const dimensionSpec = (spec || dmaNo_v1).dimensions.find(d => d.id === dimension.id);
+                        const maturityLevel = Math.round(dimension.score / 25);
+
+                        return (
+                          <AccordionItem key={dimension.id} value={dimension.id}>
+                            <AccordionTrigger className="hover:no-underline">
+                              <div className="flex items-center justify-between w-full pr-4">
+                                <span className="font-semibold text-left">
+                                  {dimensionSpec?.name || dimension.id}
+                                </span>
+                                <div className="flex items-center gap-3">
+                                  <Badge variant={maturityLevel >= 3 ? "default" : "outline"}>
+                                    {Math.round(dimension.score)}/100
+                                  </Badge>
+                                </div>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="pt-4">
+                                <DimensionGauge
+                                  dimensionId={dimension.id}
+                                  name={dimensionSpec?.name || dimension.id}
+                                  description={dimensionSpec?.description}
+                                  score={Math.round(dimension.score)}
+                                  target={dimension.target ? Math.round(dimension.target) : Math.round(dimension.score * 1.2)}
+                                  gap={dimension.gap ? Math.round(dimension.gap) : 0}
+                                  showDetails={true}
+                                />
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
+                  </TabsContent>
+
+                  {/* Benchmarks Tab */}
+                  <TabsContent value="sammenligning" className="space-y-4">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold">Benchmark Sammenligning</h3>
+                      <p className="text-muted-foreground">
+                        Se hvordan du presterer sammenlignet med andre i din bransje og region
+                      </p>
+                    </div>
+
+                    {surveyData && results && (
+                      <BenchmarkSection
+                        company={surveyData.companyDetails}
+                        dimensions={resultsData?.dimensions || {}}
+                        overallScore={results.overall}
+                      />
+                    )}
+                  </TabsContent>
+
+                  {/* Recommendations Tab */}
+                  <TabsContent value="anbefalinger" className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <InterpretationCard
+                        title="Forstå Dine Resultater"
+                        type="explanation"
+                        level="intermediate"
+                        content={
+                          <div className="space-y-3">
+                            <p>
+                              Dine vurderingsresultater er basert på EU/JRC Digital Maturity Assessment-rammeverket,
+                              som evaluerer organisasjoner på tvers av 6 kritiske dimensjoner av digital transformasjon.
+                            </p>
+                            <p>
+                              Hver dimensjonspoengsum reflekterer dine nåværende kapabiliteter og identifiserer gap
+                              til målnivåer for modenhet, og gir en veikart for digital forbedring.
+                            </p>
+                            <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+                              <p className="text-sm font-medium text-blue-800">
+                                💡 Tips: Fokuser på dimensjonene med størst gap for å oppnå størst effekt på din totale digitale modenhet.
+                              </p>
+                            </div>
+                          </div>
+                        }
+                      />
+
+                      <InterpretationCard
+                        title="Anbefalte Neste Steg"
+                        type="next-steps"
+                        level="basic"
+                        content={
+                          <div className="space-y-3">
+                            <div className="space-y-2">
+                              <h5 className="font-semibold text-sm">Umiddelbare tiltak:</h5>
+                              <ul className="text-sm space-y-1 ml-4">
+                                <li>• Gå gjennom dimensjonsspesifikke anbefalinger i Dimensjoner-fanen</li>
+                                <li>• Prioriter 2-3 dimensjoner med størst forbedringsmuligheter</li>
+                                <li>• Del resultatene med ditt digitaliserings-team</li>
+                              </ul>
+                            </div>
+                            <div className="space-y-2">
+                              <h5 className="font-semibold text-sm">Langsiktig strategi:</h5>
+                              <ul className="text-sm space-y-1 ml-4">
+                                <li>• Utarbeid en helhetlig veikart for digital transformasjon</li>
+                                <li>• Etabler regelmessige vurderingssykluser for å følge fremdrift</li>
+                                <li>• Benchmark mot bransjekolleger og beste praksis</li>
+                              </ul>
+                            </div>
+                          </div>
+                        }
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           )}
 
           {/* Actions */}
