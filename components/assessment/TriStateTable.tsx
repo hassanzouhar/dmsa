@@ -97,13 +97,16 @@ export function TriStateTable({
                     <td
                       key={option.value}
                       className={cn(
-                        "p-3 text-center cursor-pointer transition-all",
+                        "p-3 text-center cursor-pointer transition-all relative",
                         "hover:bg-gray-100",
-                        isSelected && "bg-primary/20 border-2 border-primary",
-                        !isSelected && "border-2 border-transparent"
+                        isSelected && "bg-primary/20",
+                        !isSelected && "bg-transparent"
                       )}
                       onClick={() => !disabled && handleChange(row.id, option.value)}
                     >
+                      {isSelected && (
+                        <div className="absolute inset-0 border-2 border-primary rounded pointer-events-none" />
+                      )}
                       <RadioGroup
                         value={rowValue || ''}
                         onValueChange={(val) => handleChange(row.id, val as 'yes' | 'partial' | 'no')}

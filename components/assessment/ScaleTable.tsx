@@ -93,13 +93,16 @@ export function ScaleTable({
                     <td
                       key={index}
                       className={cn(
-                        "p-2 text-center cursor-pointer transition-all",
+                        "p-2 text-center cursor-pointer transition-all relative",
                         "hover:bg-gray-100",
-                        isSelected && "bg-primary/20 border-2 border-primary",
-                        !isSelected && "border-2 border-transparent"
+                        isSelected && "bg-primary/20",
+                        !isSelected && "bg-transparent"
                       )}
                       onClick={() => !disabled && handleChange(row.id, index)}
                     >
+                      {isSelected && (
+                        <div className="absolute inset-0 border-2 border-primary rounded pointer-events-none" />
+                      )}
                       <RadioGroup
                         value={rowValue?.toString() || ''}
                         onValueChange={(val) => handleChange(row.id, parseInt(val, 10))}
