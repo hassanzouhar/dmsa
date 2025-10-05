@@ -7,16 +7,21 @@
 
 import { getAdminFirestore } from './firebase-admin';
 import { SurveyDocument } from '@/types/firestore-schema';
+import { getCountyName } from '@/data/norwegian-counties';
+import { getCountryDisplayName } from '@/data/countries';
 
 export interface LeaderboardEntry {
   id: string;
-  companyName: string;
+  displayName: string;
   industry: string;
   industryLabel: string;
   sector: string;
   size: 'micro' | 'small' | 'medium' | 'large';
   region?: string;
-  country: string;
+  countryCode?: string;
+  countryName?: string;
+  countyCode?: string;
+  countyName?: string;
   overallScore: number;
   dimensionScores: {
     digitalStrategy: number;
@@ -99,6 +104,8 @@ const SECTOR_LABELS: Record<string, { label: string; icon: string; description: 
 export async function getLeaderboardEntries(options: {
   sector?: string;
   size?: 'micro' | 'small' | 'medium' | 'large' | 'all';
+  country?: string;
+  county?: string;
   limit?: number;
 } = {}): Promise<LeaderboardEntry[]> {
   const db = getAdminFirestore();
@@ -131,17 +138,35 @@ export async function getLeaderboardEntries(options: {
     // Skip surveys without scores
     if (!survey.scores) return;
 
+    // Respect sharing preference: if explicitly disabled, skip
+    if (survey.flags?.isAnonymous === false) {
+      return;
+    }
+
+    const { companyDetails } = survey;
+
+    const { countryCode, countyCode } = parseRegion(companyDetails.region);
+
+    // Apply country/county filters after fetching
+    if (options.country && options.country !== 'all' && countryCode !== options.country) {
+      return;
+    }
+    if (options.county && options.county !== 'all' && countyCode !== options.county) {
+      return;
+    }
+
     const entry: LeaderboardEntry = {
       id: survey.id,
-      companyName: survey.flags.isAnonymous
-        ? `Bedrift ${survey.id.substring(0, 4)} (Anonym)`
-        : survey.companyDetails.companyName,
-      industry: survey.companyDetails.nace,
-      industryLabel: SECTOR_LABELS[survey.companyDetails.sector]?.label || survey.companyDetails.sector,
-      sector: survey.companyDetails.sector,
-      size: survey.companyDetails.companySize,
-      region: survey.companyDetails.region,
-      country: 'Norge', // Default for now
+      displayName: generateAnonymousAlias(survey.id),
+      industry: companyDetails.nace,
+      industryLabel: SECTOR_LABELS[companyDetails.sector]?.label || companyDetails.sector,
+      sector: companyDetails.sector,
+      size: companyDetails.companySize,
+      region: companyDetails.region,
+      countryCode,
+      countryName: getCountryDisplayName(countryCode) || countryCode,
+      countyCode,
+      countyName: getCountyName(countyCode),
       overallScore: survey.scores.overall / 10, // Convert 0-100 to 0-10 scale
       dimensionScores: {
         digitalStrategy: (survey.scores.dimensions.digitalStrategy?.score || 0) / 10,
@@ -168,6 +193,71 @@ export async function getLeaderboardEntries(options: {
 
   return entries;
 }
+
+const ADJECTIVES = [
+  'Modig',
+  'Smidig',
+  'Digital',
+  'Grønn',
+  'Fleksibel',
+  'Smart',
+  'Framtidsrettet',
+  'Innovativ',
+  'Fokusert',
+  'Effektiv',
+  'Handlekraftig',
+  'Visjonær',
+  'Drivende',
+  'Dynamisk',
+  'Utforskende'
+];
+
+const NOUNS = [
+  'Reinsdyr',
+  'Tømrer',
+  'Koder',
+  'Analytiker',
+  'Navigator',
+  'Spark',
+  'Kompass',
+  'Fyrlykt',
+  'Inkubator',
+  'Raket',
+  'Motor',
+  'Lyn',
+  'Bølge',
+  'Taktiker',
+  'Generator'
+];
+
+const hashStringToNumber = (value: string): number => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+};
+
+export const generateAnonymousAlias = (surveyId: string): string => {
+  const hash = hashStringToNumber(surveyId);
+  const adjective = ADJECTIVES[hash % ADJECTIVES.length];
+  const noun = NOUNS[(Math.floor(hash / ADJECTIVES.length)) % NOUNS.length];
+  const suffix = (hash % 90) + 10; // 10-99
+  return `${adjective} ${noun} ${suffix}`;
+};
+
+const parseRegion = (region?: string): { countryCode?: string; countyCode?: string } => {
+  if (!region) return {};
+  if (region.includes('-')) {
+    const [countryCode, rest] = region.split('-');
+    if (countryCode === 'NO') {
+      return { countryCode, countyCode: rest };
+    }
+    return { countryCode };
+  }
+  return { countryCode: region };
+};
 
 /**
  * Calculate industry benchmarks from all completed surveys

@@ -802,33 +802,6 @@ export default function ResultsPage() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto text-sm">
-                    <div className="flex items-center gap-2 text-amber-700">
-                      <Target className="w-4 h-4" />
-                      <span>Mål effekt over tid</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-amber-700">
-                      <BarChart3 className="w-4 h-4" />
-                      <span>Digitale Bransjetrender</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-amber-700">
-                      <Lightbulb className="w-4 h-4" />
-                      <span>Konkrete digitaliseringstips</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-amber-700">
-                      <FileText className="w-4 h-4" />
-                      <span>Ferdig PDF rapport</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-amber-700">
-                      <BotOff className="w-4 h-4" />
-                      <span> <strong>Ikke</strong> laget av ChatGPT</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-amber-700">
-                      <Users className="w-4 h-4" />
-                      <span></span>
-                    </div>
-                  </div>
-
                   <Dialog open={showEmailCapture} onOpenChange={setShowEmailCapture}>
                     <DialogTrigger asChild>
                       <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-3">
@@ -854,65 +827,6 @@ export default function ResultsPage() {
                             placeholder="your.email@company.com"
                             required
                           />
-                        </div>
-                        <div>
-                          <Label htmlFor="company">Company Name</Label>
-                          <Input
-                            id="company"
-                            value={userDetails.companyName}
-                            onChange={(e) => setUserDetails(prev => ({ ...prev, companyName: e.target.value }))}
-                            placeholder="Your Company Ltd"
-                            readOnly={!!userDetails.companyName && userDetails.companyName.length > 0}
-                            className={userDetails.companyName ? 'bg-gray-50 text-gray-700' : ''}
-                          />
-                          {userDetails.companyName && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Pre-filled from company details
-                            </p>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label htmlFor="sector">Sector</Label>
-                            <Select value={userDetails.sector} onValueChange={(value) => setUserDetails(prev => ({ ...prev, sector: value }))}>
-                              <SelectTrigger className={userDetails.sector ? 'bg-gray-50' : ''}>
-                                <SelectValue placeholder="Select..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                                <SelectItem value="services">Services</SelectItem>
-                                <SelectItem value="retail">Retail</SelectItem>
-                                <SelectItem value="healthcare">Healthcare</SelectItem>
-                                <SelectItem value="education">Education</SelectItem>
-                                <SelectItem value="government">Government</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {userDetails.sector && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Pre-filled from company details
-                              </p>
-                            )}
-                          </div>
-                          <div>
-                            <Label htmlFor="size">Company Size</Label>
-                            <Select value={userDetails.companySize} onValueChange={(value) => setUserDetails(prev => ({ ...prev, companySize: value }))}>
-                              <SelectTrigger className={userDetails.companySize ? 'bg-gray-50' : ''}>
-                                <SelectValue placeholder="Select..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="micro">1-9 employees</SelectItem>
-                                <SelectItem value="small">10-49 employees</SelectItem>
-                                <SelectItem value="medium">50-249 employees</SelectItem>
-                                <SelectItem value="large">250+ employees</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {userDetails.companySize && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Pre-filled from company details
-                              </p>
-                            )}
-                          </div>
                         </div>
                         <Button 
                           onClick={handleUnlockExpanded}

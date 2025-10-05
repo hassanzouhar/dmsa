@@ -6,6 +6,8 @@ export interface BenchmarkData {
   companySize: string;
   region: string;
   sampleSize: number;
+  dataSource?: 'exact' | 'sector' | 'global';
+  hasSufficientData?: boolean;
   dimensions: {
     [dimensionId: string]: {
       average: number;
@@ -113,11 +115,19 @@ export const getBenchmarkData = (
   sector?: string,
   companySize?: string
 ): BenchmarkData => {
+  const MIN_SAMPLE_SIZE = 15;
+
+  const withMetadata = (data: BenchmarkData, source: 'exact' | 'sector' | 'global'): BenchmarkData => ({
+    ...data,
+    dataSource: source,
+    hasSufficientData: source === 'exact' && data.sampleSize >= MIN_SAMPLE_SIZE,
+  });
+
   // Try to find specific benchmark data
   const key = `${sector}-${companySize}`;
   
   if (sector && companySize && BENCHMARK_DATABASE[key]) {
-    return BENCHMARK_DATABASE[key];
+    return withMetadata(BENCHMARK_DATABASE[key], 'exact');
   }
   
   // Fall back to sector-specific data if available
@@ -126,11 +136,11 @@ export const getBenchmarkData = (
   );
   
   if (sectorKeys.length > 0) {
-    return BENCHMARK_DATABASE[sectorKeys[0]];
+    return withMetadata(BENCHMARK_DATABASE[sectorKeys[0]], 'sector');
   }
   
   // Fall back to default benchmarks
-  return BENCHMARK_DATABASE['default'];
+  return withMetadata(BENCHMARK_DATABASE['default'], 'global');
 };
 
 /**

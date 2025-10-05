@@ -5,20 +5,21 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   BarChart3,
+  MountainSnow,
+  MapPinned,
   CheckCircle,
   ChevronRight,
+  RadioTower,
+  ScanSearch,
   Clock,
   Cpu,
   Database,
   Factory,
   Gauge,
-  Globe2,
   Leaf,
   Target,
-  TrendingUp,
   Users,
   Zap
 } from 'lucide-react';
@@ -134,25 +135,25 @@ export default function HomePage() {
     {
       label: 'Bedrifter',
       value: surveyStats.count.toLocaleString('no-NO'),
-      description: 'har allerede tatt vurderingen',
+      description: 'bedrifter har tatt vurderingen',
       icon: Users
     },
     {
       label: 'Regioner',
       value: surveyStats.regionCount > 0 ? surveyStats.regionCount.toLocaleString('no-NO') : '—',
-      description: 'fylker og regioner representert i dataene',
-      icon: Globe2
+      description: 'fylker og regioner',
+      icon: MapPinned
     },
     {
       label: 'Bransjer',
       value: surveyStats.sectorCount > 0 ? surveyStats.sectorCount.toLocaleString('no-NO') : '—',
-      description: 'EU/JRC-sektorer representert i dataene',
+      description: 'forskjellige bransjer',
       icon: Factory
     },
     {
       label: 'Snittscore',
-      value: surveyStats.averageScore > 0 ? `${Math.round(surveyStats.averageScore)}/100` : '—',
-      description: 'gjennomsnittlig modenhetspoeng i Norge',
+      value: surveyStats.averageScore > 0 ? `${Math.round(surveyStats.averageScore)} av 100` : '—',
+      description: 'er gjennomsnittsscoren',
       icon: Gauge
     }
   ];
@@ -167,57 +168,45 @@ export default function HomePage() {
             <div className="absolute -top-32 -right-24 h-56 w-56 rounded-full bg-purple-400/30 blur-3xl" />
             <div className="absolute -bottom-24 -left-20 h-48 w-48 rounded-full bg-blue-400/30 blur-3xl" />
             <div className="relative z-10 px-6 py-10 md:px-16 md:py-16 space-y-10">
-              <div className="flex flex-wrap items-center justify-center gap-3 text-center">
-                <Badge variant="secondary" className="text-sm bg-white/80 text-primary shadow-sm">
-                  <Link
-                    href="https://rastlaus.us"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold hover:underline"
-                  >
-                    Rastlaus
-                  </Link>{' '}
-                  presenterer
-                </Badge>
-                <Badge variant="secondary" className="text-sm bg-white/60 text-muted-foreground shadow-sm">
-                  EU/JRC Digital Maturity Framework
-                </Badge>
-              </div>
-
               <div className="space-y-6 max-w-3xl mx-auto text-center">
                 <h1 className="text-4xl md:text-6xl font-bold leading-tight">
                   <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                    NM i Digitalisering
+                    Hvor digital er din bedrift?
                   </span>
                 </h1>
                 <p className="text-lg md:text-xl text-slate-700 leading-relaxed">
-                  Gjør bedriftens digitale modenhet til en konkurransefordel. Benchmark mot norske virksomheter, oppdag mulighetsrommet og få konkrete anbefalinger basert på EU/JRC sitt rammeverk.
-                </p>
+                  Få verdifull innsikt i hva som er bedriftens <strong>svakheter</strong> og <strong>muligheter</strong>. 
+                  <br></br> Se hvordan bedriften ligger an mot andre i din bransje. 
+                  <br></br>
+                </p> 
+                <p> Få fart på digitaliseringen med en rapporten som dekker seks viktige områder.</p>
                 <p className="text-base text-muted-foreground max-w-2xl mx-auto">
                   Vurderingen er gratis, tar under 20 minutter og fokuserer på håndfast digital praksis fremfor buzz-ord. Ingen hype – bare innsikt du kan ta med til neste styremøte.
                 </p>
               </div>
-
-              <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:items-center sm:justify-center">
-                <Link href="/company-details" className="w-full">
-                  <Button size="lg" className="w-full text-base md:text-lg px-6 md:px-8 py-5 md:py-6">
-                    <BarChart3 className="w-5 h-5 mr-2" />
-                    Start vurdering
+                <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-3">
+                <Link href="/company-details" className="w-full sm:w-auto">
+                  <Button size="lg" className="w-auto text-base md:text-lg px-6 md:px-8 py-5 md:py-6">
+                  <ScanSearch className="w-5 h-5 mr-2" />
+                  Få din vurdering
                   </Button>
                 </Link>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-full text-base md:text-lg px-6 md:px-8 py-5 md:py-6 sm:w-auto"
+                  className="w-full sm:w-auto text-base md:text-lg px-6 md:px-8 py-5 md:py-6 relative"
                   onClick={() => router.push('/leaderboard')}
                 >
-                  <TrendingUp className="w-5 h-5 mr-2" />
-                  Se resultattavle
+                  <RadioTower className="w-auto h-5 mr-2" />
+                  Bransjetrend LIVE
+                  <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800 text-xs font-semibold align-middle">
+                    beta
+                  </span>
                 </Button>
-              </div>
+                </div>
 
               {surveyStats.count > 0 && (
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4 max-w-4xl mx-auto">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4 max-w-auto mx-auto">
                   {heroHighlights.map((stat) => {
                     const Icon = stat.icon;
                     return (
@@ -225,8 +214,8 @@ export default function HomePage() {
                         key={stat.label}
                         className="flex items-center gap-4 rounded-2xl bg-white/90 p-4 text-left shadow-sm border border-white/60 transition-colors hover:border-blue-200"
                       >
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/15 to-purple-500/15 text-primary">
-                          <Icon className="h-6 w-6" />
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/15 to-purple-500/15 text-primary">
+                          <Icon className="flex h-6 w-6" />
                         </div>
                         <div>
                           <div className="text-2xl font-semibold text-slate-900">{stat.value}</div>
@@ -313,11 +302,11 @@ export default function HomePage() {
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <div className="flex items-center justify-center gap-2">
-                  <Zap className="w-6 h-6 text-yellow-500" />
-                  <h2 className="text-3xl font-bold">Disse bransjene leder an i digitaliseringen av Norge</h2>
+                  <MountainSnow className="w-6 h-6 text-yellow-500" />
+                  <h2 className="text-3xl font-bold">Bransjene som er best på digitalisering</h2>
                 </div>
                 <p className="text-muted-foreground text-lg">
-                  Basert på gjennomsnittlig digital modenhetsscore per NACE-bransje
+                  Gjennomsnittlig digital modenhetsscore innen hver bransje.
                 </p>
               </div>
 
@@ -370,7 +359,7 @@ export default function HomePage() {
                   className="flex items-center gap-2 mx-auto"
                   onClick={() => router.push('/leaderboard')}
                 >
-                  <span>Se full resultattavle</span>
+                  <span>Se hele oversikten</span>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -380,10 +369,10 @@ export default function HomePage() {
           {/* Footer */}
           <div className="text-center text-sm text-muted-foreground pt-8 border-t space-y-2">
             <p>
-              This tool is based on EU Joint Research Centre (JRC) Digital Maturity Assessment framework.
+              Dette verktøyet er basert på EU Joint Research Centre (JRC) sitt DMAT rammeverk.
             </p>
             <p>
-              Made with ❤️ by <strong><a href="https://rastla.us" className="underline hover:text-primary">Rastlaus</a></strong>
+              Lagd med ❤️ av <strong><a href="https://rastla.us" className="underline hover:text-primary">Rastlaus</a></strong>
             </p>
           </div>
         </div>

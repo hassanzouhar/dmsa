@@ -16,7 +16,11 @@ const BenchmarkChart: React.FC<BenchmarkChartProps> = ({
   showDetails = true 
 }) => {
   const { userScore, benchmark, performanceLevel, gap, percentile } = comparison;
-  
+  const dataSource = benchmark.dataSource || 'exact';
+  const hasSufficientData = benchmark.hasSufficientData ?? (benchmark.sampleSize ?? 0) >= 15;
+  const isFallback = dataSource !== 'exact';
+  const showProvisionalNotice = isFallback || !hasSufficientData;
+
   // Color scheme based on performance level
   const getPerformanceColor = (level: ComparisonResult['performanceLevel']) => {
     switch (level) {
@@ -59,18 +63,23 @@ const BenchmarkChart: React.FC<BenchmarkChartProps> = ({
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           {title}
           <HelpTooltip content="Compare your performance against industry benchmarks based on your sector and company size." />
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getPerformanceColor(performanceLevel)}`}>
             {getPerformanceLabel(performanceLevel)}
           </span>
           <span className="text-sm text-gray-600">
             {percentile}th percentile
           </span>
+          {showProvisionalNotice && (
+            <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
+              Foreløpige tall – vi trenger flere datapunkter i din kategori
+            </span>
+          )}
         </div>
       </div>
 
@@ -153,10 +162,16 @@ const BenchmarkChart: React.FC<BenchmarkChartProps> = ({
             )}
             
             <div>
-              <span className="font-medium text-gray-900">Sample Size:</span>
-              <span className="ml-2 text-gray-600">
-                {benchmark.sampleSize} organizations
-              </span>
+              <span className="font-medium text-gray-900">Datagrunnlag:</span>
+              {showProvisionalNotice ? (
+                <span className="ml-2 text-amber-600">
+                  Ikke nok svar for ditt segment ennå – viser midlertidige referansetall
+                </span>
+              ) : (
+                <span className="ml-2 text-gray-600">
+                  Basert på {benchmark.sampleSize?.toLocaleString('no-NO') ?? '—'} organisasjoner
+                </span>
+              )}
             </div>
           </div>
         </div>

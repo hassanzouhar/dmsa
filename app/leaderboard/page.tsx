@@ -5,14 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Trophy,
   Medal,
   Award,
   ArrowLeft,
-  Search,
   Building2,
   Target,
   Zap,
@@ -25,18 +23,21 @@ import {
   Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getCountyName, extractCountyCodeFromRegion } from '@/data/norwegian-counties';
-import { getCountryDisplayName } from '@/data/countries';
+import { NORWEGIAN_COUNTIES } from '@/data/norwegian-counties';
+import { COUNTRY_LABELS } from '@/data/countries';
 
 interface LeaderboardEntry {
   id: string;
-  companyName: string;
+  displayName: string;
   industry: string;
   industryLabel: string;
   sector: string;
   size: 'micro' | 'small' | 'medium' | 'large';
   region?: string;
-  country: string;
+  countryCode?: string;
+  countryName?: string;
+  countyCode?: string;
+  countyName?: string;
   overallScore: number;
   dimensionScores: {
     digitalStrategy: number;
@@ -55,7 +56,8 @@ export default function LeaderboardPage() {
   const router = useRouter();
   const [selectedSector, setSelectedSector] = useState<string>('all');
   const [selectedSize, setSelectedSize] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState<string>('all');
+  const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [selectedTab, setSelectedTab] = useState('overall');
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +71,8 @@ export default function LeaderboardPage() {
         const params = new URLSearchParams();
         if (selectedSector !== 'all') params.append('sector', selectedSector);
         if (selectedSize !== 'all') params.append('size', selectedSize);
+        if (selectedCountry !== 'all') params.append('country', selectedCountry);
+        if (selectedCounty !== 'all' && selectedCountry === 'NO') params.append('county', selectedCounty);
 
         const response = await fetch(`/api/leaderboard?${params.toString()}`);
         const data = await response.json();
@@ -87,7 +91,7 @@ export default function LeaderboardPage() {
     }
 
     fetchLeaderboard();
-  }, [selectedSector, selectedSize]);
+  }, [selectedSector, selectedSize, selectedCountry, selectedCounty]);
 
   const sectors = [
     { value: 'all', label: 'Alle bransjer' },
@@ -118,26 +122,36 @@ export default function LeaderboardPage() {
   ];
 
   const filteredData = useMemo(() => {
-    let filtered = leaderboardData;
+    const data = [...leaderboardData];
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(entry =>
-        entry.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.industryLabel.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Sort by selected dimension or overall score
     if (selectedTab === 'overall') {
-      return filtered.sort((a, b) => b.overallScore - a.overallScore);
-    } else {
-      return filtered.sort((a, b) =>
+      return data.sort((a, b) => b.overallScore - a.overallScore);
+    }
+    return data.sort(
+      (a, b) =>
         b.dimensionScores[selectedTab as keyof typeof b.dimensionScores] -
         a.dimensionScores[selectedTab as keyof typeof a.dimensionScores]
-      );
+    );
+  }, [leaderboardData, selectedTab]);
+
+  const countryOptions = useMemo(() => {
+    const options = Object.entries(COUNTRY_LABELS).map(([code, label]) => ({
+      value: code,
+      label,
+    }));
+    return [{ value: 'all', label: 'Alle land' }, ...options];
+  }, []);
+
+  const countyOptions = useMemo(() => {
+    if (selectedCountry !== 'NO') {
+      return [{ value: 'all', label: 'Alle fylker' }];
     }
-  }, [leaderboardData, searchTerm, selectedTab]);
+    const mapped = NORWEGIAN_COUNTIES.filter((county) => county.code !== '99').map((county) => ({
+      value: county.code,
+      label: county.name,
+    }));
+    return [{ value: 'all', label: 'Alle fylker' }, ...mapped];
+  }, [selectedCountry]);
 
   const getRankIcon = (position: number) => {
     if (position === 1) return <Crown className="w-5 h-5 text-yellow-500" />;
@@ -172,7 +186,7 @@ export default function LeaderboardPage() {
         <div className="flex items-center justify-between mb-6">
           <Button variant="ghost" onClick={() => router.push('/')} className="flex items-center space-x-2">
             <ArrowLeft className="w-4 h-4" />
-            <span>Tilbake til start</span>
+            <span>Hjem</span>
           </Button>
         </div>
 
@@ -188,13 +202,13 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Filters */}
-      <Card className="p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <Card className="p-6 mb-8 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <div>
             <label className="text-sm text-gray-600 mb-2 block">Bransje</label>
             <Select value={selectedSector} onValueChange={setSelectedSector}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Alle bransjer" />
               </SelectTrigger>
               <SelectContent>
                 {sectors.map((sector) => (
@@ -210,7 +224,7 @@ export default function LeaderboardPage() {
             <label className="text-sm text-gray-600 mb-2 block">Bedriftsstørrelse</label>
             <Select value={selectedSize} onValueChange={setSelectedSize}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Alle størrelser" />
               </SelectTrigger>
               <SelectContent>
                 {companySizes.map((size) => (
@@ -223,26 +237,69 @@ export default function LeaderboardPage() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-600 mb-2 block">Søk bedrift</label>
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Søk etter bedriftsnavn..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <label className="text-sm text-gray-600 mb-2 block">Land</label>
+            <Select
+              value={selectedCountry}
+              onValueChange={(value) => {
+                setSelectedCountry(value);
+                setSelectedCounty('all');
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Alle land" />
+              </SelectTrigger>
+              <SelectContent>
+                {countryOptions.map((country) => (
+                  <SelectItem key={country.value} value={country.value}>
+                    {country.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-600 mb-2 block">Fylke</label>
+            <Select
+              value={selectedCounty}
+              onValueChange={setSelectedCounty}
+              disabled={selectedCountry !== 'NO'}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Alle fylker" />
+              </SelectTrigger>
+              <SelectContent>
+                {countyOptions.map((county) => (
+                  <SelectItem key={county.value} value={county.value}>
+                    {county.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-gray-600">
-            Viser {filteredData.length} bedrifter
+            Viser {filteredData.length} bedrifter. Alle navn anonymiseres automatisk.
           </p>
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <Building2 className="w-4 h-4" />
-            <span>Sist oppdatert: {new Date().toLocaleDateString('no-NO')}</span>
+          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
+              <span>Sist oppdatert: {new Date().toLocaleDateString('no-NO')}</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedSector('all');
+                setSelectedSize('all');
+                setSelectedCountry('all');
+                setSelectedCounty('all');
+              }}
+            >
+              Nullstill filtre
+            </Button>
           </div>
         </div>
       </Card>
@@ -276,7 +333,7 @@ export default function LeaderboardPage() {
               <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg text-gray-600 mb-2">Ingen bedrifter funnet</h3>
               <p className="text-gray-500">
-                Prøv å justere filtrene eller søkeordene for å se flere resultater.
+                Prøv å justere filtrene for å se flere resultater.
               </p>
             </Card>
           ) : (
@@ -286,12 +343,8 @@ export default function LeaderboardPage() {
                   ? entry.overallScore
                   : (entry.dimensionScores?.[selectedTab as keyof typeof entry.dimensionScores] ?? 0);
                 const level = getScoreLevel(score);
-                const normalizedCountry = entry.country && entry.country.length === 2
-                  ? entry.country.toUpperCase()
-                  : entry.country;
-                const countryDisplay = getCountryDisplayName(normalizedCountry) || normalizedCountry || 'Ukjent';
-                const countyCode = extractCountyCodeFromRegion(entry.region);
-                const countyName = countyCode ? getCountyName(countyCode) : undefined;
+                const countryDisplay = entry.countryName || 'Uoppgitt';
+                const countyName = entry.countyName;
 
                 return (
                   <Card key={entry.id} className={`p-6 transition-shadow hover:shadow-md ${index < 3 ? 'ring-2 ring-yellow-200' : ''}`}>
@@ -304,10 +357,8 @@ export default function LeaderboardPage() {
 
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-1">
-                            <h3 className="text-lg font-medium">{entry.companyName}</h3>
-                            {entry.isAnonymous && (
-                              <Badge variant="outline" className="text-xs">Anonym</Badge>
-                            )}
+                            <h3 className="text-lg font-medium">{entry.displayName}</h3>
+                            <Badge variant="outline" className="text-xs">Alias</Badge>
                           </div>
                           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
                             <span>{entry.industryLabel}</span>
@@ -354,6 +405,13 @@ export default function LeaderboardPage() {
                   </Card>
                 );
               })}
+
+              <Card className="bg-slate-50 border-dashed border-slate-200 p-6 text-sm text-slate-600">
+                <h3 className="font-semibold text-slate-900 mb-2">Aggregert innsikt er på vei</h3>
+                <p>
+                  Når vi har nok svar per land, fylke, bransje og størrelse viser vi sammendragsstatistikk og toppscorere for ettersyn. Følg med!
+                </p>
+              </Card>
             </div>
           )}
         </TabsContent>
@@ -365,7 +423,7 @@ export default function LeaderboardPage() {
           Resultattavlen oppdateres automatisk når nye vurderinger fullføres.
         </p>
         <p>
-          Ønsker du å delta anonymt i resultattavlen? Du kan velge dette i slutten av din vurdering.
+          Du kan når som helst slå av deling av resultatene i rapporten din – aliaset forsvinner da fra tavlen.
         </p>
       </div>
     </div>

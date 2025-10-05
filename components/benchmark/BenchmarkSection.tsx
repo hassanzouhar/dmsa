@@ -46,6 +46,21 @@ const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ company, dimensions
   // Generate benchmark comparison
   const benchmarkComparison = generateBenchmarkComparison(surveyDataCompat);
   const { overall, dimensions: dimensionComparisons, benchmarkData, insights, summary } = benchmarkComparison;
+  const isFallbackData = benchmarkData.dataSource && benchmarkData.dataSource !== 'exact';
+  const hasSufficientData = benchmarkData.hasSufficientData ?? (benchmarkData.sampleSize ?? 0) >= 15;
+
+  const dataContextMessage = (() => {
+    if (isFallbackData && !hasSufficientData) {
+      return 'Vi har foreløpig for få svar i din bransje og størrelse, så grafene under viser generelle referansetall.';
+    }
+    if (isFallbackData) {
+      return 'Vi viser nå bransjens referansetall. Bidra gjerne med flere vurderinger for å gjøre benchmarken mer presis.';
+    }
+    if (!hasSufficientData) {
+      return 'Vi trenger flere svar i din kategori for å gi mer presise benchmark-tall.';
+    }
+    return null;
+  })();
 
   // Dimension names mapping
   const dimensionNames: Record<string, string> = {
@@ -65,13 +80,18 @@ const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ company, dimensions
           Benchmark Comparison
           <HelpTooltip content="See how your digital maturity scores compare against similar organizations in your sector and size category." />
         </h2>
-        <p className="text-gray-600">
-          Compared against {getSectorDisplayName(benchmarkData.sector)} sector, {getCompanySizeDisplayName(benchmarkData.companySize)} companies
+      <p className="text-gray-600">
+        Compared against {getSectorDisplayName(benchmarkData.sector)} sector, {getCompanySizeDisplayName(benchmarkData.companySize)} companies
+      </p>
+      <p className="text-sm text-gray-500">
+        {benchmarkData.sampleSize ? `Based on ${benchmarkData.sampleSize.toLocaleString('no-NO')} organizations` : 'Datagrunnlag samles inn'} • Updated {new Date(benchmarkData.lastUpdated).toLocaleDateString()}
+      </p>
+      {dataContextMessage && (
+        <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          {dataContextMessage}
         </p>
-        <p className="text-sm text-gray-500">
-          Based on {benchmarkData.sampleSize} organizations • Updated {new Date(benchmarkData.lastUpdated).toLocaleDateString()}
-        </p>
-      </div>
+      )}
+    </div>
 
       {/* Performance Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

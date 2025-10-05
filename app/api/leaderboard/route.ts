@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const sector = searchParams.get('sector') || undefined;
     const size = searchParams.get('size') as 'micro' | 'small' | 'medium' | 'large' | undefined;
+    const country = searchParams.get('country') || undefined;
+    const county = searchParams.get('county') || undefined;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
     const benchmarks = searchParams.get('benchmarks') === 'true';
     const count = searchParams.get('count') === 'true';
@@ -43,6 +45,8 @@ export async function GET(request: NextRequest) {
     const entries = await getLeaderboardEntries({
       sector,
       size,
+      country,
+      county,
       limit,
     });
 
@@ -54,6 +58,8 @@ export async function GET(request: NextRequest) {
         filters: {
           sector,
           size,
+          country,
+          county,
           limit,
         }
       }
