@@ -167,6 +167,7 @@ export async function POST(request: NextRequest) {
         isCompleted: false,
         hasResults: false,
         hasExpandedAccess: false,
+        includeInLeaderboard: true,
       },
       retrieval: {
         tokenHash,
