@@ -16,10 +16,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
-  ArrowLeft, Download, BarChart3, TrendingUp, Unlock, Mail, Users, FileText,
-  Zap, Target, Lightbulb, Star, Copy, ExternalLink, AlertCircle, Trophy
+  ArrowLeft, BotOff, Download, BarChart3, TrendingUp, Mail, Users, FileText,
+  Target, Lightbulb, Puzzle, Star, Copy, ExternalLink, AlertCircle, Trophy, Building
 } from 'lucide-react';
 import { classify } from '@/lib/maturity';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +33,9 @@ import { TrackedPDFDownloadButton } from '@/components/TrackedPDFDownloadButton'
 import { trackEmailCapture, trackJSONExport } from '@/lib/analytics';
 import BenchmarkSection from '@/components/benchmark/BenchmarkSection';
 import ExtendedResultsModal from '@/components/modals/ExtendedResultsModal';
+import { getCountyName, extractCountyCodeFromRegion } from '@/data/norwegian-counties';
+import { getSectorDisplayName, getCompanySizeDisplayName } from '@/lib/benchmark-service';
+import { getCountryDisplayName } from '@/data/countries';
 
 export default function ResultsPage() {
   const { t } = useTranslation();
@@ -60,14 +63,15 @@ export default function ResultsPage() {
     sector: '',
     companySize: '',
     region: '',
-    country: ''
+    country: '',
+    countyCode: ''
   });
   
   // Extended modal state
   const [showExtendedModal, setShowExtendedModal] = useState(false);
 
   // Anonymous participation state
-  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(true);
   const [isUpdatingAnonymous, setIsUpdatingAnonymous] = useState(false);
 
   // Store state
@@ -90,7 +94,16 @@ export default function ResultsPage() {
             setSurveyId(urlSurveyId);
             setRetrievalToken(urlToken);
             setHasExpandedAccess(results.hasExpandedAccess);
-            setIsAnonymous(results.survey.flags.isAnonymous || false);
+            const serverAnonymous = results.survey.flags.isAnonymous;
+            const defaultAnonymous = serverAnonymous !== false;
+            setIsAnonymous(defaultAnonymous);
+            if ((serverAnonymous === undefined || serverAnonymous === null) && defaultAnonymous) {
+              try {
+                await updateAnonymousFlag(urlSurveyId, true, urlToken);
+              } catch (error) {
+                console.error('Failed to set default anonymous flag:', error);
+              }
+            }
             setIsLoading(false);
             console.log(`✅ Loaded survey from new API`);
             return;
@@ -111,6 +124,16 @@ export default function ResultsPage() {
             setSurveyData(results.survey);
             setResultsData(results.results);
             setHasExpandedAccess(results.hasExpandedAccess);
+            const serverAnonymous = results.survey.flags.isAnonymous;
+            const defaultAnonymous = serverAnonymous !== false;
+            setIsAnonymous(defaultAnonymous);
+            if ((serverAnonymous === undefined || serverAnonymous === null) && defaultAnonymous) {
+              try {
+                await updateAnonymousFlag(surveySession.surveyId, true, surveySession.retrievalToken);
+              } catch (error) {
+                console.error('Failed to set default anonymous flag:', error);
+              }
+            }
             setIsLoading(false);
             return;
           }
@@ -133,13 +156,19 @@ export default function ResultsPage() {
     if (storedCompanyDetails) {
       try {
         const companyDetails = JSON.parse(storedCompanyDetails);
+        const countyCode = companyDetails.county || '';
+        const regionValue = countyCode
+          ? `${companyDetails.country || 'NO'}-${countyCode}`
+          : companyDetails.country || '';
+
         setUserDetails(prev => ({
           ...prev,
           companyName: companyDetails.companyName || '',
           sector: mapNACEToSector(companyDetails.naceSector) || '',
           companySize: companyDetails.companySize || '',
-          region: companyDetails.zipCode || '',
-          country: companyDetails.country || ''
+          region: regionValue,
+          country: companyDetails.country || '',
+          countyCode
         }));
       } catch (error) {
         console.error('Failed to parse stored company details:', error);
@@ -252,6 +281,7 @@ export default function ResultsPage() {
           companySize: userDetails.companySize,
           sector: userDetails.sector,
           region: userDetails.region,
+          county: userDetails.countyCode,
         });
         
         toast.success('Expanded results unlocked!', {
@@ -292,27 +322,33 @@ export default function ResultsPage() {
 
   // Handle anonymous participation toggle
   const handleAnonymousToggle = async (checked: boolean) => {
+    if (checked === isAnonymous) {
+      return;
+    }
     if (!surveyId || !retrievalToken) {
       toast.error('Cannot update anonymous setting');
       return;
     }
 
     setIsUpdatingAnonymous(true);
+    const previousValue = isAnonymous;
+    setIsAnonymous(checked);
     try {
       const success = await updateAnonymousFlag(surveyId, checked, retrievalToken);
 
       if (success) {
-        setIsAnonymous(checked);
         toast.success(
           checked
             ? 'Your results will appear anonymously on the leaderboard'
-            : 'Your results will be hidden from the leaderboard'
+            : 'Your company name will be visible on the leaderboard'
         );
       } else {
+        setIsAnonymous(previousValue);
         toast.error('Failed to update anonymous setting');
       }
     } catch (error) {
       console.error('Failed to update anonymous flag:', error);
+      setIsAnonymous(previousValue);
       toast.error('Failed to update anonymous setting');
     } finally {
       setIsUpdatingAnonymous(false);
@@ -470,55 +506,139 @@ export default function ResultsPage() {
   const overallPercentage = Math.round(results?.overall || 0);
   const classification = results?.classification;
 
+  const companyProfile = surveyData?.companyDetails;
+  const countyFromSurvey = extractCountyCodeFromRegion(companyProfile?.region);
+  const fallbackCounty = userDetails.countyCode || extractCountyCodeFromRegion(userDetails.region);
+  const resolvedCountyCode = countyFromSurvey || fallbackCounty;
+  const resolvedCountyName = resolvedCountyCode ? getCountyName(resolvedCountyCode) : undefined;
+
+  const resolvedCountryCode = (() => {
+    if (companyProfile?.region?.includes('-')) {
+      return companyProfile.region.split('-')[0];
+    }
+    if (userDetails.country) return userDetails.country;
+    if (companyProfile?.region) return companyProfile.region;
+    return '';
+  })();
+
+  const resolvedCountryName = getCountryDisplayName(resolvedCountryCode);
+
+  const displayCompanyName = companyProfile?.companyName || userDetails.companyName || 'Ikke oppgitt';
+  const hasSector = Boolean(companyProfile?.sector || userDetails.sector);
+  const displaySector = hasSector
+    ? getSectorDisplayName(companyProfile?.sector || userDetails.sector || 'other')
+    : 'Ikke oppgitt';
+  const hasCompanySize = Boolean(companyProfile?.companySize || userDetails.companySize);
+  const displayCompanySize = getCompanySizeDisplayName(companyProfile?.companySize || userDetails.companySize || '');
+  const countyBadge = resolvedCountyCode && resolvedCountryCode === 'NO' ? `NO-${resolvedCountyCode}` : undefined;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-6">
           
-          {/* Survey ID Display - Always Visible */}
-          {surveyId && (
-            <Alert className="border-primary/20 bg-primary/5">
-              <Star className="h-4 w-4" />
-              <AlertDescription className="flex items-center justify-between">
-                <div>
-                  <strong>Your Assessment ID: </strong>
-                  <code className="bg-white px-2 py-1 rounded text-sm font-mono">{surveyId}</code>
-                  <span className="text-sm text-muted-foreground ml-2">
-                    Save this ID to retrieve your results later
-                  </span>
-                </div>
-                <Button variant="outline" size="sm" onClick={copySurveyId}>
-                  <Copy className="w-3 h-3 mr-1" />
-                  Copy
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
+          
 
           {/* Header with Immediate Value */}
           <Card className="border-0 shadow-lg bg-gradient-to-r from-primary/5 to-purple-50">
             <CardHeader>
               <div className="text-center space-y-3">
                 <CardTitle className="text-3xl font-bold text-primary">
-                  🎉 Assessment Complete!
+                   Digital Modenhets Rapport
                 </CardTitle>
                 <CardDescription className="text-lg">
-                  Here&apos;s your Digital Maturity Assessment results
+                  Her er de, bedriftens (digitale) styrker, svakheter og muligheter. <br/>
                 </CardDescription>
               </div>
             </CardHeader>
           </Card>
+           <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="w-5 h-5 text-primary" />
+                Bedriftsprofil
+              </CardTitle>
+              <CardDescription>
+                Informasjon om bedriften som har gjennomført vurderingen
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Navn</p>
+                  <p className="text-base font-medium text-gray-900">{displayCompanyName}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Bransje</p>
+                  <p className="text-base font-medium text-gray-900">
+                    {hasSector ? displaySector : 'Ikke oppgitt'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Størrelse</p>
+                  <p className="text-base font-medium text-gray-900">
+                    {hasCompanySize
+                      ? displayCompanySize
+                      : 'Ikke oppgitt'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Land</p>
+                  <p className="text-base font-medium text-gray-900">
+                    {resolvedCountryName || 'Ikke oppgitt'}
+                  </p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Fylke</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-base font-medium text-gray-900">
+                      {resolvedCountyName || 'Ikke oppgitt'}
+                    </p>
+                    {countyBadge && (
+                      <Badge variant="outline" className="text-xs">
+                        {countyBadge}
+                      </Badge>
+                    )}
+                  </div>
+                  {!resolvedCountyName && resolvedCountryCode === 'NO' && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Oppgi fylke i bedriftsskjemaet for mer presise sammenligninger.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Survey ID Display - Always Visible */}
+          {surveyId && (
+            <Alert className="border-primary/20 bg-primary/5">
+              <Star className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <div>
+                  <strong>RapportID: </strong>
+                  <code className="bg-white px-2 py-1 rounded text-sm font-mono">{surveyId}</code>
+                  <span className="text-sm text-muted-foreground ml-2">
+                    <i>Du kan kopiere denne for å hente opp rapporten igjen senere.</i>
+                  </span>
+                </div>
+                <Button variant="outline" size="sm" onClick={copySurveyId}>
+                  <Copy className="w-3 h-3 mr-1" />
+                  Kopiér
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Immediate Value - Basic Results (Always Visible) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             <Card className="border-2 border-primary/20 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-primary" />
-                  Your Overall Score
+                  Total Poengsum
                   <HelpTooltip 
-                    title="Understanding Your Overall Score"
-                    content="This score represents your organization's overall digital maturity across all 6 dimensions, calculated using the EU/JRC framework. Scores are normalized to 0-100 for easy interpretation."
+                    title="Slik tolker du din totale poengsum"
+                    content="Den totale poengsummen representerer din samlede digitale modenhet på en skala fra 0 til 100. Den beregnes ved å veie og aggregere poengsummene fra hver av de 6 dimensjonene basert på deres betydning for helheten."
                     variant="info"
                     size="sm"
                   />
@@ -532,7 +652,7 @@ export default function ResultsPage() {
                   <Badge 
                     variant="outline" 
                     className={`text-lg px-4 py-2 ${
-                      (classification?.level || 0) >= 4 ? 'border-green-500 text-green-700 bg-green-50' :
+                      (classification?.level || 0) >= 1 ? 'border-green-500 text-green-700 bg-green-50' :
                       (classification?.level || 0) >= 3 ? 'border-blue-500 text-blue-700 bg-blue-50' :
                       (classification?.level || 0) >= 2 ? 'border-amber-500 text-amber-700 bg-amber-50' :
                       'border-red-500 text-red-700 bg-red-50'
@@ -540,49 +660,122 @@ export default function ResultsPage() {
                   >
                     {classification ? t(classification.labelKey) : 'Unknown'}
                   </Badge>
-                  <Progress value={overallPercentage} className="w-full h-4" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-primary" />
-                  Dimension Preview
-                  <HelpTooltip 
-                    title="The 6 Digital Maturity Dimensions"
-                    content="Digital maturity is measured across 6 key areas: Digital Business Strategy, Digital Readiness, Human-Centric Digitalization, Data Management & Connectivity, Automation & AI, and Green Digitalization."
-                    variant="help"
-                    size="sm"
-                  />
-                </CardTitle>
-                <CardDescription>
-                  Your performance across the 6 digital maturity dimensions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <DimensionGaugesGrid 
-                    dimensions={(results?.dimensions || []).map(dimension => ({
-                      id: dimension.id,
-                      score: Math.round(dimension.score),
-                      target: dimension.target ? Math.round(dimension.target) : Math.round(dimension.score * 1.2),
-                      gap: dimension.gap ? Math.round(dimension.gap) : 0
-                    }))}
-                    dimensionSpecs={(spec || dmaNo_v1).dimensions}
-                    showDetails={false}
-                    compactMode={true}
-                  className="max-h-80 overflow-hidden relative"
-                />
-                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none" />
-                <div className="text-center mt-4 pt-2 border-t border-gray-100">
-                  <p className="text-sm text-muted-foreground">
-                    🔒 Unlock detailed insights and recommendations below
-                  </p>
+                  <Progress value={overallPercentage} className="w-full h-8" />
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-primary" />
+                De seks dimensjonene
+                <HelpTooltip 
+                  title="De 6 digitale modenhetsområdene"
+                  content="Hver av de 6 dimensjonene representerer et kritisk aspekt av digital modenhet. Ved å analysere poengsummene for hver dimensjon kan du identifisere styrker og forbedringsområder i din digitale strategi."
+                  variant="help"
+                  size="sm"
+                />
+              </CardTitle>
+              <CardDescription>
+                Detaljert analyse alle dimensjonene.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="relative">
+                <DimensionGaugesGrid 
+                  dimensions={(results?.dimensions || []).map(dimension => ({
+                    id: dimension.id,
+                    score: Math.round(dimension.score),
+                    target: dimension.target ? Math.round(dimension.target) : Math.round(dimension.score * 1.2),
+                    gap: dimension.gap ? Math.round(dimension.gap) : 0
+                  }))}
+                  dimensionSpecs={(spec || dmaNo_v1).dimensions}
+                  showDetails={true}
+                  compactMode={true}
+                  className="max-h-80 overflow-hidden"
+                />
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+              </div>
+              <div className="text-center mt-4 pt-2 border-t border-gray-100">
+                <p className="text-sm text-muted-foreground">
+                  🔒 Lagre rapporten for å få tilgang.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          
+           {/* Anonymous Participation Option */}
+          {surveyId && retrievalToken && (
+            <Card className="border-purple-200 bg-purple-50">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 pt-1">
+                    <Trophy className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <h3 className="font-semibold text-purple-900 mb-1">
+                        Bli en del av &quot;NM i Digitalisering&quot;! 
+                      </h3>
+                      <p className="text-sm text-purple-800">
+                        Vi trenger mer fokus på praktisk bruk av teknologi for å øke digitaliseringsgraden i næringslivet! Ved å bli en del av statistikken så hjelper du også andre bedrifter ved å dele bedriftens poengsum. Dere kan velge å være med anonymt eller med bedriftens navn.
+                        Dine resultater vil bidra til bransjebenchmarks uten å avsløre bedriftens identitet.
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-sm text-purple-800">
+                        Velg hvordan resultatene deres skal vises på tavlen.
+                      </p>
+                      <RadioGroup
+                        value={isAnonymous ? 'anonymous' : 'public'}
+                        onValueChange={(value) => handleAnonymousToggle(value === 'anonymous')}
+                        disabled={isUpdatingAnonymous}
+                        className="grid gap-3 sm:grid-cols-2"
+                      >
+                        <div className={`flex items-start gap-3 rounded-lg border p-3 transition-all ${isAnonymous ? 'border-purple-400 bg-white' : 'border-transparent bg-purple-100/40'}`}>
+                          <RadioGroupItem value="anonymous" id="participation-anonymous" />
+                          <div>
+                            <Label htmlFor="participation-anonymous" className="text-sm font-medium text-purple-900">
+                              Delta anonymt (anbefalt)
+                            </Label>
+                            <p className="text-xs text-purple-700 mt-1">
+                              Resultatene vises uten firmanavn, men bidrar til bransjestatistikken.
+                            </p>
+                          </div>
+                        </div>
+                        <div className={`flex items-start gap-3 rounded-lg border p-3 transition-all ${!isAnonymous ? 'border-purple-400 bg-white' : 'border-transparent bg-purple-100/40'}`}>
+                          <RadioGroupItem value="public" id="participation-public" />
+                          <div>
+                            <Label htmlFor="participation-public" className="text-sm font-medium text-purple-900">
+                              Vis bedriftens navn
+                            </Label>
+                            <p className="text-xs text-purple-700 mt-1">
+                              Resultatene publiseres med bedriftens navn på resultattavlen.
+                            </p>
+                          </div>
+                        </div>
+                      </RadioGroup>
+                      {isUpdatingAnonymous && (
+                        <p className="text-xs text-purple-700">Oppdaterer visningsinnstilling…</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-purple-700 border-purple-300 hover:bg-purple-100"
+                      onClick={() => router.push('/leaderboard')}
+                    >
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Se resultattavle
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Maturity Level Explanation */}
           <MaturityLevelExplanation
@@ -596,43 +789,43 @@ export default function ResultsPage() {
               <CardContent className="p-8">
                 <div className="text-center space-y-6">
                   <div className="flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mx-auto">
-                    <Unlock className="w-8 h-8 text-amber-600" />
+                    <Puzzle className="w-8 h-8 text-amber-600" />
                   </div>
                   
                   <div className="space-y-3">
                     <h3 className="text-2xl font-bold text-amber-800">
-                      Unlock Your Complete Analysis
+                      Få full tilgang til dine resultater
                     </h3>
                     <p className="text-amber-700 max-w-2xl mx-auto">
-                      Get detailed insights, industry benchmarks, personalized recommendations, 
-                      and a professional PDF report. Just provide your email for free access.
+                      Alt du trenger å gjøre er å legge til din e-post, da får du en mer detaljerte innsikt, bransjebenchmarks og konkrete
+                      anbefalinger, helt gratis.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto text-sm">
                     <div className="flex items-center gap-2 text-amber-700">
                       <Target className="w-4 h-4" />
-                      <span>Detailed radar chart</span>
+                      <span>Mål effekt over tid</span>
                     </div>
                     <div className="flex items-center gap-2 text-amber-700">
                       <BarChart3 className="w-4 h-4" />
-                      <span>Industry benchmarks</span>
+                      <span>Digitale Bransjetrender</span>
                     </div>
                     <div className="flex items-center gap-2 text-amber-700">
                       <Lightbulb className="w-4 h-4" />
-                      <span>Action recommendations</span>
+                      <span>Konkrete digitaliseringstips</span>
                     </div>
                     <div className="flex items-center gap-2 text-amber-700">
                       <FileText className="w-4 h-4" />
-                      <span>Professional PDF report</span>
+                      <span>Ferdig PDF rapport</span>
                     </div>
                     <div className="flex items-center gap-2 text-amber-700">
-                      <Zap className="w-4 h-4" />
-                      <span>Progress tracking</span>
+                      <BotOff className="w-4 h-4" />
+                      <span> <strong>Ikke</strong> laget av ChatGPT</span>
                     </div>
                     <div className="flex items-center gap-2 text-amber-700">
                       <Users className="w-4 h-4" />
-                      <span>Peer comparisons</span>
+                      <span></span>
                     </div>
                   </div>
 
@@ -640,12 +833,12 @@ export default function ResultsPage() {
                     <DialogTrigger asChild>
                       <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-3">
                         <Mail className="w-4 h-4 mr-2" />
-                        Unlock Complete Results (Free)
+                        Legg til e-post
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
                       <DialogHeader>
-                        <DialogTitle>Unlock Your Complete Analysis</DialogTitle>
+                        <DialogTitle>Vil du vite mer? Your Complete Analysis</DialogTitle>
                         <DialogDescription>
                           Provide your details to access detailed insights and benchmarks
                         </DialogDescription>
@@ -914,56 +1107,6 @@ export default function ResultsPage() {
               </Button>
             </div>
           </div>
-
-          {/* Anonymous Participation Option */}
-          {surveyId && retrievalToken && (
-            <Card className="border-purple-200 bg-purple-50">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 pt-1">
-                    <Trophy className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div className="flex-1 space-y-3">
-                    <div>
-                      <h3 className="font-semibold text-purple-900 mb-1">
-                        Bidra til bransjeinnsikt
-                      </h3>
-                      <p className="text-sm text-purple-800">
-                        Hjelp andre bedrifter ved å dele dine resultater anonymt på vår offentlige resultattavle.
-                        Dine resultater vil bidra til bransjebenchmarks uten å avsløre bedriftens identitet.
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="anonymous-participation"
-                        checked={isAnonymous}
-                        onCheckedChange={handleAnonymousToggle}
-                        disabled={isUpdatingAnonymous}
-                      />
-                      <label
-                        htmlFor="anonymous-participation"
-                        className="text-sm font-medium text-purple-900 cursor-pointer"
-                      >
-                        {isAnonymous
-                          ? '✓ Dine resultater vises anonymt på resultattavlen'
-                          : 'Vis mine resultater anonymt på resultattavlen'
-                        }
-                      </label>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-purple-700 border-purple-300 hover:bg-purple-100"
-                      onClick={() => router.push('/leaderboard')}
-                    >
-                      <TrendingUp className="w-4 h-4 mr-2" />
-                      Se resultattavle
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Footer */}
           <Card className="bg-blue-50 border-blue-200">

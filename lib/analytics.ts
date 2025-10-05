@@ -100,6 +100,7 @@ export const trackEmailCapture = async (
     companySize?: string;
     sector?: string;
     region?: string;
+    county?: string;
   }
 ): Promise<void> => {
   // Extract domain for B2B analysis without storing PII

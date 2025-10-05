@@ -254,15 +254,60 @@ export async function getIndustryBenchmarks(minSampleSize: number = 3): Promise<
 /**
  * Get survey count for social proof
  */
-export async function getSurveyCount(): Promise<number> {
+export interface SurveyStats {
+  count: number;
+  regionCount: number;
+  sectorCount: number;
+  averageScore: number;
+}
+
+/**
+ * Aggregated survey stats for social proof and hero section
+ */
+export async function getSurveyStats(): Promise<SurveyStats> {
   const db = getAdminFirestore();
 
   const snapshot = await db.collection('surveys')
     .where('flags.isCompleted', '==', true)
-    .count()
+    .where('flags.hasResults', '==', true)
     .get();
 
-  return snapshot.data().count;
+  const regions = new Set<string>();
+  const sectors = new Set<string>();
+  let totalScore = 0;
+  let completedCount = 0;
+
+  snapshot.forEach((doc) => {
+    const survey = doc.data() as SurveyDocument;
+    if (!survey.scores) return;
+
+    completedCount += 1;
+    totalScore += survey.scores.overall || 0;
+
+    const region = survey.companyDetails.region;
+    if (region) {
+      regions.add(region);
+    }
+
+    const sector = survey.companyDetails.sector;
+    if (sector) {
+      sectors.add(sector);
+    }
+  });
+
+  const averageScore = completedCount > 0 ? Number((totalScore / completedCount).toFixed(1)) : 0;
+
+  return {
+    count: completedCount,
+    regionCount: regions.size,
+    sectorCount: sectors.size,
+    averageScore,
+  };
+}
+
+export async function getSurveyCount(): Promise<number> {
+  const stats = await getSurveyStats();
+  return stats.count;
 }
 
 /**

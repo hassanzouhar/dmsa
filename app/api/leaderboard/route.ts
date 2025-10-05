@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getLeaderboardEntries,
   getIndustryBenchmarks,
-  getSurveyCount,
+  getSurveyStats,
 } from '@/lib/leaderboard-service';
 
 export async function GET(request: NextRequest) {
@@ -23,10 +23,10 @@ export async function GET(request: NextRequest) {
 
     // Return survey count only
     if (count) {
-      const surveyCount = await getSurveyCount();
+      const stats = await getSurveyStats();
       return NextResponse.json({
         success: true,
-        data: { count: surveyCount }
+        data: stats
       });
     }
 

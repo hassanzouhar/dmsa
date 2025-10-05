@@ -12,30 +12,34 @@ import { ArrowRight, Building, Users, Briefcase, AlertCircle } from 'lucide-reac
 import { Badge } from '@/components/ui/badge';
 import { createSurvey, CompanyDetailsForm } from '@/lib/survey-api';
 import { useAssessmentStore } from '@/store/assessment';
+import { NORWEGIAN_COUNTIES } from '@/data/norwegian-counties';
 
-// NACE sector codes and descriptions
+// SN / NACE hybrid bedrifter etter størrelse og næring
+// https://www.ssb.no/nasjonalregnskap-og-konjunkturer/statistikker/bedrifter/aar/2023-11-16#innhold
+
 const NACE_SECTORS = [
-  { code: 'A', name: 'Agriculture, forestry and fishing' },
-  { code: 'B', name: 'Mining and quarrying' },
-  { code: 'C', name: 'Manufacturing' },
-  { code: 'D', name: 'Electricity, gas, steam and air conditioning supply' },
-  { code: 'E', name: 'Water supply; sewerage, waste management and remediation' },
-  { code: 'F', name: 'Construction' },
-  { code: 'G', name: 'Wholesale and retail trade; repair of motor vehicles' },
-  { code: 'H', name: 'Transportation and storage' },
-  { code: 'I', name: 'Accommodation and food service activities' },
-  { code: 'J', name: 'Information and communication' },
-  { code: 'K', name: 'Financial and insurance activities' },
-  { code: 'L', name: 'Real estate activities' },
-  { code: 'M', name: 'Professional, scientific and technical activities' },
-  { code: 'N', name: 'Administrative and support service activities' },
-  { code: 'O', name: 'Public administration and defence; compulsory social security' },
-  { code: 'P', name: 'Education' },
-  { code: 'Q', name: 'Human health and social work activities' },
-  { code: 'R', name: 'Arts, entertainment and recreation' },
-  { code: 'S', name: 'Other service activities' },
-  { code: 'T', name: 'Activities of households as employers' },
-  { code: 'U', name: 'Activities of extraterritorial organisations and bodies' }
+  { code: 'A', name: 'Jordbruk, skogbruk og fiske	' },
+  { code: 'B', name: 'Bergverksdrift og utvinning' },
+  { code: 'C', name: 'Industri' },
+  { code: 'D', name: 'Kraftforsyning' },
+  { code: 'E', name: 'Vannforsyning, avløp og renovasjon' },
+  { code: 'F', name: 'Bygge- og anleggsvirksomhet' },
+  { code: 'G', name: 'Vare, Engros eller detaljhandel' },
+  { code: 'H', name: 'Transport og lagring' },
+  { code: 'I', name: 'Overnattings- og serveringsvirksomhet' },
+  { code: 'J', name: 'Utgivelse, kringkasting, innnholdsproduksjon og distribusjonsvirksomhet' },
+  { code: 'K', name: 'Telekommunikasjon, Programmering, Konsulent eller andre tjenester knyttet til IT' },
+  { code: 'L', name: 'Finansiell tjenesteyting' },
+  { code: 'M', name: 'Eiendomsvirksomhet' },
+  { code: 'N', name: 'Faglig, vitenskaplig og teknisk tjenesteyting' },
+  { code: 'O', name: 'Forretningsmessig tjenesteyting' },
+  { code: 'P', name: 'Offentlig administrasjon og forsvar, trygdeordninger underlagt offentlig forvaltning' },
+  { code: 'Q', name: 'Undervisning' },
+  { code: 'R', name: 'Helse- og sosialtjenester' },
+  { code: 'S', name: 'Kultur, underholdning og fritid i alt' },
+  { code: 'T', name: 'Annen tjenesteyting' },
+  { code: 'U', name: 'Vis/skjul:U - Lønnet arbeid i private husholdninger og annen vareproduksjon og tjenesteyting i private husholdninger til eget bruk' },
+  { code: 'V', name: 'Aktiviteter i Internasjonale organisasjoner og organer' }
 ];
 
 // Country options (focusing on European countries and common ones)
@@ -64,26 +68,26 @@ const COUNTRIES = [
 const COMPANY_SIZES = [
   { 
     id: 'micro', 
-    name: 'Mikrobedrift', 
-    description: '1-9 ansatte, omsetning ≤ 2 mill. EUR',
+    name: 'Mikrobedrift, "ENK"', 
+    description: 'Årlig omsetning under 2M EUR',
     employees: '1-9 ansatte'
   },
   { 
     id: 'small', 
     name: 'Liten bedrift', 
-    description: '10-49 ansatte, omsetning ≤ 10 mill. EUR',
+    description: 'Årlig omsetning under 10M EUR',
     employees: '10-49 ansatte'
   },
   { 
     id: 'medium', 
-    name: 'Mellomstørrelse', 
-    description: '50-249 ansatte, omsetning ≤ 50 mill. EUR',
+    name: 'Mellomstor bedrift', 
+    description: 'Årlig omsetning under 50 mill. EUR',
     employees: '50-249 ansatte'
   },
   { 
     id: 'large', 
     name: 'Stor bedrift', 
-    description: '250+ ansatte, omsetning > 50 mill. EUR',
+    description: 'Årlig omsetning over 50 mill. EUR',
     employees: '250+ ansatte'
   }
 ];
@@ -93,7 +97,7 @@ interface CompanyDetails {
   naceSector: string;
   companySize: string;
   country: string;
-  zipCode?: string;
+  county?: string;
 }
 
 export default function CompanyDetailsPage() {
@@ -103,7 +107,8 @@ export default function CompanyDetailsPage() {
     companyName: '',
     naceSector: '',
     companySize: '',
-    country: 'NO' // Default to Norway
+    country: 'NO', // Default to Norway
+    county: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -127,6 +132,10 @@ export default function CompanyDetailsPage() {
     if (!formData.country) {
       newErrors.country = 'Velg land';
     }
+
+    if (formData.country === 'NO' && !formData.county) {
+      newErrors.county = 'Velg fylke';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -145,7 +154,10 @@ export default function CompanyDetailsPage() {
         companyName: formData.companyName.trim(),
         companySize: formData.companySize as 'micro' | 'small' | 'medium' | 'large',
         nace: formData.naceSector,
-        region: formData.zipCode ? `${formData.country}-${formData.zipCode}` : formData.country,
+        region:
+          formData.country === 'NO' && formData.county
+            ? `${formData.country}-${formData.county}`
+            : formData.country,
       };
 
       // Create survey via API
@@ -221,7 +233,7 @@ export default function CompanyDetailsPage() {
                 Bedriftsdetaljer
               </CardTitle>
               <CardDescription>
-                Informasjonen brukes kun for å tilpasse vurderingen og lagres sikkert.
+                For å kunne sammenligne dine svar med andre i din bransje må vi vite litt om bedriften.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -255,14 +267,14 @@ export default function CompanyDetailsPage() {
               {/* NACE Sector */}
               <div className="space-y-2">
                 <Label htmlFor="naceSector" className="text-base font-medium">
-                  Bransje (NACE-kode) *
+                  Velg bransje *
                 </Label>
                 <Select
                   value={formData.naceSector}
                   onValueChange={(value) => handleChange('naceSector', value)}
                 >
                   <SelectTrigger className={errors.naceSector ? 'border-red-300' : ''}>
-                    <SelectValue placeholder="Velg din bransje" />
+                    <SelectValue placeholder="Næringsgruppe / Aktivitet" />
                   </SelectTrigger>
                   <SelectContent>
                     {NACE_SECTORS.map((sector) => (
@@ -348,21 +360,36 @@ export default function CompanyDetailsPage() {
               </div>
 
               {/* Zip Code (Optional) */}
-              <div className="space-y-2">
-                <Label htmlFor="zipCode" className="text-base font-medium">
-                  Postnummer (valgfritt)
-                </Label>
-                <Input
-                  id="zipCode"
-                  placeholder="0150"
-                  value={formData.zipCode || ''}
-                  onChange={(e) => handleChange('zipCode', e.target.value)}
-                  className="w-32"
-                />
-                <p className="text-sm text-muted-foreground">
-                  For regionale sammenligninger
-                </p>
-              </div>
+              {formData.country === 'NO' && (
+                <div className="space-y-2">
+                  <Label className="text-base font-medium">
+                    Fylke *
+                  </Label>
+                  <Select
+                    value={formData.county || ''}
+                    onValueChange={(value) => handleChange('county', value)}
+                  >
+                    <SelectTrigger className={errors.county ? 'border-red-300' : ''}>
+                      <SelectValue placeholder="Velg fylke" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NORWEGIAN_COUNTIES.map((county) => (
+                        <SelectItem key={county.code} value={county.code}>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {county.code}
+                            </Badge>
+                            <span>{county.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.county && (
+                    <p className="text-sm text-red-600">{errors.county}</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

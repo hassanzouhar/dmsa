@@ -154,7 +154,7 @@ export interface CompanyDetails {
   naceSector: string; // NACE sector code (A-U)
   companySize: 'micro' | 'small' | 'medium' | 'large';
   country?: string;
-  zipCode?: string;
+  county?: string; // Norwegian county code (03, 11, ...)
 }
 
 // User details for T1 survey upgrade

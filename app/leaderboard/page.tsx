@@ -14,7 +14,6 @@ import {
   ArrowLeft,
   Search,
   Building2,
-  TrendingUp,
   Target,
   Zap,
   Users,
@@ -25,8 +24,9 @@ import {
   Star,
   Loader2
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { getCountyName, extractCountyCodeFromRegion } from '@/data/norwegian-counties';
+import { getCountryDisplayName } from '@/data/countries';
 
 interface LeaderboardEntry {
   id: string;
@@ -286,6 +286,12 @@ export default function LeaderboardPage() {
                   ? entry.overallScore
                   : (entry.dimensionScores?.[selectedTab as keyof typeof entry.dimensionScores] ?? 0);
                 const level = getScoreLevel(score);
+                const normalizedCountry = entry.country && entry.country.length === 2
+                  ? entry.country.toUpperCase()
+                  : entry.country;
+                const countryDisplay = getCountryDisplayName(normalizedCountry) || normalizedCountry || 'Ukjent';
+                const countyCode = extractCountyCodeFromRegion(entry.region);
+                const countyName = countyCode ? getCountyName(countyCode) : undefined;
 
                 return (
                   <Card key={entry.id} className={`p-6 transition-shadow hover:shadow-md ${index < 3 ? 'ring-2 ring-yellow-200' : ''}`}>
@@ -303,12 +309,18 @@ export default function LeaderboardPage() {
                               <Badge variant="outline" className="text-xs">Anonym</Badge>
                             )}
                           </div>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
                             <span>{entry.industryLabel}</span>
-                            <span>•</span>
+                            <span className="text-gray-300">•</span>
                             <span>{getSizeLabel(entry.size)} bedrift</span>
-                            <span>•</span>
-                            <span>{entry.country}</span>
+                            <span className="text-gray-300">•</span>
+                            <span>{countryDisplay}</span>
+                            {countyName && (
+                              <>
+                                <span className="text-gray-300">•</span>
+                                <span>Fylke: {countyName}</span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>

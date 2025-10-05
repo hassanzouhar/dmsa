@@ -21,7 +21,7 @@ export default function AssessmentPage() {
     naceSector: string;
     companySize: string;
     country: string;
-    zipCode?: string;
+    county?: string;
   } | null>(null);
   // Auto-save state (currently unused but prepared for future implementation)
   const [, setLastSaved] = useState<Date | null>(null);
