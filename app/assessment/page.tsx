@@ -308,7 +308,7 @@ export default function AssessmentPage() {
                     const dimQuestions = spec.questions.filter(q => q.dimensionId === dim.id);
                     const completedCount = dimQuestions.filter(q => {
                       const ans = answers[q.id];
-                      return ans !== undefined && ans !== null && ans !== '';
+                      return ans !== undefined && ans !== null;
                     }).length;
                     const dimProgress = completedCount / dimQuestions.length;
 
