@@ -15,7 +15,6 @@ import {
 import { MagicLinkRequest } from '@/components/MagicLinkRequest';
 import {
   BarChart3,
-  WandSparkles,
   MountainSnow,
   MapPinned,
   CheckCircle,

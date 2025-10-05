@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createMagicLink } from '@/lib/magic-link';
-import { getSurveysByEmail, getSurveyCountForEmail } from '@/lib/email-survey-mapping';
+import { getSurveyCountForEmail } from '@/lib/email-survey-mapping';
 import { sendMagicLinkEmail } from '@/lib/email-service';
 import { z } from 'zod';
 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
           error: {
             code: 'INVALID_REQUEST',
             error: 'Invalid request data',
-            details: validation.error.errors[0]?.message,
+            details: validation.error.issues[0]?.message,
           },
         },
         { status: 400 }

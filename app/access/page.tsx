@@ -10,7 +10,6 @@ import { MagicLinkRequest } from '@/components/MagicLinkRequest';
 import {
   ArrowLeft,
   ExternalLink,
-  FileText,
   Loader2,
   AlertCircle,
   CheckCircle2,
@@ -88,7 +87,6 @@ function AccessPageContent() {
       console.error('Verification error:', err);
       setError('Noe gikk galt. Vennligst prøv igjen.');
       toast.error('Kunne ikke verifisere lenken');
-    } finally {
       setIsVerifying(false);
     }
   };

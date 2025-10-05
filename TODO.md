@@ -1,8 +1,6 @@
 # TODO
 
 ## Planned Work
-1. Update leaderboard backend data handling (country/county filters, deterministic aliases).
-2. Overhaul leaderboard filter UI (add country/county selectors, remove search).
-3. Implement anonymous alias rendering in leaderboard entries.
-4. Refine dimension view logic to respect new filters and improve UX.
-5. QA pass and lint/tests for leaderboard changes.
+1. Clean up unused imports/components on the results page (post email-modal simplification) to silence lint warnings.
+2. Smoke-test the leaderboard after alias/filter changes with real survey data to confirm NACE mapping now stays consistent end-to-end.
+3. Review production logs once the new deployment has traffic to ensure anonymous alias generation and country/county filters behave as expected.

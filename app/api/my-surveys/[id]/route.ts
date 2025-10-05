@@ -8,7 +8,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { COLLECTIONS, DOCUMENT_IDS } from '@/types/firestore-schema';
-import { hashEmail } from '@/lib/email-survey-mapping';
 
 interface RouteParams {
   params: Promise<{
