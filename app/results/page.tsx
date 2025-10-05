@@ -82,13 +82,21 @@ export default function ResultsPage() {
   useEffect(() => {
     const loadSurveyData = async () => {
       setIsLoading(true);
-      
+
+      // Check for session token from magic link flow
+      let sessionToken: string | null = null;
+      try {
+        sessionToken = sessionStorage.getItem('dmsa-session');
+      } catch (e) {
+        console.warn('Could not access sessionStorage:', e);
+      }
+
       // If we have URL params (new API), try to fetch from new API first
       if (urlSurveyId && urlToken) {
         try {
           console.log(`🔄 Loading survey from new API: ${urlSurveyId}`);
           const results = await getSurveyResults(urlSurveyId, urlToken);
-          
+
           if (results) {
             setSurveyData(results.survey);
             setResultsData(results.results);
@@ -104,6 +112,53 @@ export default function ResultsPage() {
           }
         } catch (error) {
           console.error('Failed to load from new API:', error);
+        }
+      }
+
+      // Try session-based authentication if we have survey ID but no direct token
+      if (urlSurveyId && !urlToken && sessionToken) {
+        try {
+          console.log(`🔐 Attempting session-based auth for survey: ${urlSurveyId}`);
+          const sessionData = JSON.parse(atob(sessionToken));
+
+          // Verify session is not expired (7 days)
+          if (sessionData.expiresAt > Date.now()) {
+            // Verify this survey ID is in the session's allowed list
+            if (sessionData.surveyIds && sessionData.surveyIds.includes(urlSurveyId)) {
+              console.log(`✅ Valid session found for survey ${urlSurveyId}`);
+
+              // Fetch survey using a special session-based endpoint
+              const response = await fetch(`/api/my-surveys/${urlSurveyId}`, {
+                headers: {
+                  'Authorization': `Bearer ${sessionToken}`
+                }
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data) {
+                  setSurveyData(data.data.survey);
+                  setResultsData(data.data.results);
+                  setSurveyId(urlSurveyId);
+                  setRetrievalToken(data.data.retrievalToken);
+                  setHasExpandedAccess(data.data.hasExpandedAccess);
+                  const includeFlag = data.data.survey.flags.includeInLeaderboard ?? true;
+                  setIncludeInLeaderboard(includeFlag);
+                  setIsLoading(false);
+                  console.log(`✅ Loaded survey via session auth`);
+                  return;
+                }
+              }
+            } else {
+              console.warn(`Survey ${urlSurveyId} not in session's allowed list`);
+            }
+          } else {
+            console.warn('Session token expired');
+            // Clear expired session
+            sessionStorage.removeItem('dmsa-session');
+          }
+        } catch (error) {
+          console.error('Failed to use session token:', error);
         }
       }
       

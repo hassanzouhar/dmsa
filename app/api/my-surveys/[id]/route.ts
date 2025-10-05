@@ -105,8 +105,20 @@ export async function GET(request: NextRequest, props: RouteParams) {
 
     const surveyData = surveyDoc.data();
 
-    // Get retrieval token (this is the key to accessing survey details)
-    const retrievalTokenData = surveyData?.retrieval;
+    // Get private user details subcollection
+    const userDetailsDoc = await db
+      .collection(COLLECTIONS.SURVEYS)
+      .doc(surveyId)
+      .collection('private')
+      .doc('userDetails')
+      .get();
+
+    // Get retrieval token from private user details (not from public survey doc)
+    const userDetails = userDetailsDoc.exists ? userDetailsDoc.data() : null;
+    const retrievalToken = userDetails?.retrievalToken;
+
+    // Check if user has expanded access (T1 state)
+    const hasExpandedAccess = surveyData?.state === 'T1' && surveyData?.flags?.hasExpandedAccess;
 
     // Fetch full results
     const resultsDoc = await db
@@ -120,8 +132,9 @@ export async function GET(request: NextRequest, props: RouteParams) {
       success: true,
       data: {
         survey: surveyData,
-        retrievalToken: retrievalTokenData?.tokenHash, // Return hash, frontend will use original token from local storage if available
+        retrievalToken, // Return the actual token for authenticated users
         results: resultsDoc.exists ? resultsDoc.data() : null,
+        hasExpandedAccess,
       },
     });
   } catch (error) {
