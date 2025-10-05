@@ -40,6 +40,7 @@ export async function sendMagicLinkEmail(
   const expiryTime = expiryDate.toLocaleTimeString('no-NO', {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Europe/Oslo',
   });
 
   const htmlContent = `
