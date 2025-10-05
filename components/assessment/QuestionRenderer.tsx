@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { ValidationFeedback } from './ValidationFeedback';
+import { isAnswerComplete } from '@/lib/scoring';
 
 interface QuestionRendererProps {
   question: Question;
@@ -34,29 +35,62 @@ export function QuestionRenderer({
   
   const isRequired = question.required !== false;
   const hasAnswer = !!answer;
-  
-  // Calculate answer validation and completion
-  const isAnswerValid = () => {
-    if (!answer) return false;
-    if ('selected' in answer) return answer.selected && answer.selected.length > 0;
-    if ('value' in answer) return answer.value !== undefined && answer.value !== null;
-    if (answer.type === 'dual-checkboxes') return answer.left || answer.right;
-    if ('rows' in answer) {
-      const rows = answer.rows as Record<string, unknown>;
-      return Object.keys(rows).length > 0;
-    }
-    return true;
-  };
-  
+  const isComplete = hasAnswer ? isAnswerComplete(question, answer as Answer) : false;
+
   const getCompletionPercentage = () => {
     if (!answer) return 0;
-    if ('selected' in answer) {
-      const totalOptions = question.type === 'checkboxes' && 'options' in question ? question.options.length : 1;
-      const selected = answer.selected as string[];
-      return Math.min(100, (selected.length / Math.max(1, totalOptions * 0.3)) * 100);
+
+    switch (question.type) {
+      case 'checkboxes': {
+        const checkboxAnswer = answer as Extract<Answer, { type: 'checkboxes' }>;
+        const checkboxQuestion = question as Extract<Question, { type: 'checkboxes' }>;
+        const totalOptions = checkboxQuestion.options.length;
+        if (!totalOptions) return checkboxAnswer.selected.length > 0 ? 100 : 0;
+        return Math.min(100, (checkboxAnswer.selected.length / totalOptions) * 100);
+      }
+      case 'dual-checkboxes': {
+        const dualAnswer = answer as Extract<Answer, { type: 'dual-checkboxes' }>;
+        const count = Number(dualAnswer.left) + Number(dualAnswer.right);
+        return Math.min(100, (count / 2) * 100);
+      }
+      case 'scale-0-5':
+      case 'tri-state':
+        return isComplete ? 100 : 0;
+      case 'table-dual-checkboxes': {
+        const tableAnswer = answer as Extract<Answer, { type: 'table-dual-checkboxes' }>;
+        const tableQuestion = question as Extract<Question, { type: 'table-dual-checkboxes' }>;
+        const totalRows = tableQuestion.rows.length;
+        if (!totalRows) return 0;
+        const answeredRows = tableQuestion.rows.filter(row => {
+          const rowAnswer = tableAnswer.rows[row.id];
+          return Boolean(rowAnswer && (rowAnswer.left || rowAnswer.right));
+        }).length;
+        return Math.min(100, (answeredRows / totalRows) * 100);
+      }
+      case 'scale-table': {
+        const scaleTableAnswer = answer as Extract<Answer, { type: 'scale-table' }>;
+        const scaleTableQuestion = question as Extract<Question, { type: 'scale-table' }>;
+        const totalRows = scaleTableQuestion.rows.length;
+        const answeredRows = scaleTableQuestion.rows.filter(row => typeof scaleTableAnswer.rows[row.id] === 'number').length;
+        return Math.min(100, (answeredRows / Math.max(1, totalRows)) * 100);
+      }
+      case 'tri-state-table': {
+        const triTableAnswer = answer as Extract<Answer, { type: 'tri-state-table' }>;
+        const triTableQuestion = question as Extract<Question, { type: 'tri-state-table' }>;
+        const totalRows = triTableQuestion.rows.length;
+        const answeredRows = triTableQuestion.rows.filter(row => {
+          const value = triTableAnswer.rows[row.id];
+          return value === 'yes' || value === 'partial' || value === 'no';
+        }).length;
+        return Math.min(100, (answeredRows / Math.max(1, totalRows)) * 100);
+      }
+      default:
+        return isComplete ? 100 : 0;
     }
-    return isAnswerValid() ? 100 : 0;
   };
+
+  const completionPercentage = getCompletionPercentage();
+  const showValidationFeedback = isRequired && hasAnswer && !isComplete;
 
   const handleTriStateChange = (value: 'yes' | 'partial' | 'no') => {
     setAnswer(question.id, { type: 'tri-state', value });
@@ -250,11 +284,16 @@ export function QuestionRenderer({
           
           <div className="flex gap-2 flex-shrink-0">
             {showRequired && isRequired && (
-              <Badge variant={hasAnswer ? "default" : "secondary"} className="text-xs">
-                {hasAnswer ? t('ui.answered', 'Besvart') : t('ui.required', 'Påkrevd')}
+              <Badge variant={isComplete ? "default" : "secondary"} className="text-xs">
+                {isComplete ? t('ui.answered', 'Besvart') : t('ui.required', 'Påkrevd')}
               </Badge>
             )}
-            {hasAnswer && (
+            {showRequired && !isRequired && (
+              <Badge variant="outline" className="text-xs">
+                {t('ui.optional', 'Valgfritt')}
+              </Badge>
+            )}
+            {isComplete && (
               <Badge variant="outline" className="text-xs text-green-700 border-green-200">
                 ✓
               </Badge>
@@ -266,16 +305,17 @@ export function QuestionRenderer({
       <CardContent>
         {renderQuestionInput()}
         
-        {/* Validation Feedback */}
-        <div className="mt-6 pt-4 border-t border-gray-100">
-          <ValidationFeedback
-            question={question}
-            answer={answer}
-            isValid={isAnswerValid()}
-            completionPercentage={getCompletionPercentage()}
-            showTips={true}
-          />
-        </div>
+        {showValidationFeedback && (
+          <div className="mt-6 pt-4 border-t border-gray-100">
+            <ValidationFeedback
+              question={question}
+              isRequired={isRequired}
+              hasAnswer={hasAnswer}
+              isComplete={isComplete}
+              completionPercentage={completionPercentage}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

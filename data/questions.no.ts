@@ -56,6 +56,7 @@ export const dmaNo_v1: AssessmentSpec = {
       title: 'På hvilke av følgende forretningsområder har bedriften din allerede investert i digitalisering, og hvilke planlegger den å investere i fremtiden?',
       description: 'Velg alle alternativer som gjelder:',
       weight: 1,
+      required: false,
       rows: [
         { id: 'product-service-design', label: 'Produkt-/tjenestedesign inkl. forskning, utvikling og innovasjon' },
         { id: 'project-planning', label: 'Prosjektplanlegging og-ledelse' },
@@ -80,6 +81,7 @@ export const dmaNo_v1: AssessmentSpec = {
       title: 'På hvilke av følgende måter er din bedrift forberedt på (mer) digitalisering?',
       description: 'Velg alle alternativer som gjelder:',
       weight: 1,
+      required: false,
       options: [
         { id: 'needs-identified', label: 'Digitaliseringsbehov er identifisert og er i tråd med forretningsmål', weight: 1 },
         { id: 'financial-resources', label: 'Finansielle ressurser (egne midler, tilskudd, lån) identifiseres for å sikre digitalisering i løpet av minst det neste året', weight: 1 },
@@ -102,6 +104,7 @@ export const dmaNo_v1: AssessmentSpec = {
       title: 'Hvilke av følgende digitale teknologier og løsninger brukes allerede av din bedrift?',
       description: 'Velg alle alternativer som gjelder ved å huke av hver enkelt.',
       weight: 1,
+      required: false,
       options: [
         { id: 'connectivity-infrastructure', label: 'Tilkoblingsinfrastruktur (høyhastighetsinternett (fiber), skydatatjenester, ekstern tilgang til kontorsystemer)', weight: 1 },
         { id: 'company-website', label: 'Bedriftens nettside', weight: 1 },
@@ -142,6 +145,7 @@ export const dmaNo_v1: AssessmentSpec = {
       title: 'Hva gjør din bedrift for å om-og oppgradere sine ansatte for digitalisering?',
       description: 'Velg alle alternativer som gjelder:',
       weight: 1,
+      required: false,
       options: [
         { id: 'skills-assessment', label: 'Gjennomfører vurderinger av personalets ferdigheter til å identifisere ferdighetshullene', weight: 1 },
         { id: 'training-plan', label: 'Utformer en opplæringsplan for å trene og oppgradere personalet', weight: 1 },
@@ -159,6 +163,7 @@ export const dmaNo_v1: AssessmentSpec = {
       title: 'Når man tar i bruk nye digitale løsninger, hvordan engasjerer og styrker bedriften din sine ansatte?',
       description: 'Velg alle alternativer som gjelder:',
       weight: 1,
+      required: false,
       options: [
         { id: 'awareness', label: 'Legger til rette for ansattes bevissthet om nye digitale teknologier', weight: 1 },
         { id: 'transparent-communication', label: 'Formidler digitaliseringsplaner til ansatte på en transparent og inkluderende måte', weight: 1 },
@@ -179,6 +184,7 @@ export const dmaNo_v1: AssessmentSpec = {
       title: 'Hvordan administreres bedriftens data (dvs. lagres, organiseres, åpnes og utnyttes)?',
       description: 'Velg alle alternativer som gjelder:',
       weight: 1,
+      required: false,
       options: [
         { id: 'data-governance', label: 'Organisasjonen har laget retningslinjer/plan/tiltakssett for databehandling', weight: 1 },
         { id: 'no-digital-collection', label: 'Data samles ikke inn digitalt', weight: -1 }, // Negative indicator
@@ -197,6 +203,7 @@ export const dmaNo_v1: AssessmentSpec = {
       title: 'Er din bedrift sine data tilstrekkelig sikre?',
       description: 'Velg alle alternativer som gjelder:',
       weight: 1,
+      required: false,
       options: [
         { id: 'security-policies', label: 'Bedriftsretningslinjer for datasikkerhet/tiltakssett er på plass', weight: 1 },
         { id: 'customer-data-protection', label: 'Alle kunderelaterte data er beskyttet mot cyberangrep', weight: 1 },
@@ -233,6 +240,7 @@ export const dmaNo_v1: AssessmentSpec = {
       title: 'Hvordan bruker din bedrift digitale teknologier for å bidra til miljømessig bærekraft?',
       description: 'Velg alle alternativer som gjelder:',
       weight: 1,
+      required: false,
       options: [
         { id: 'sustainable-business-model', label: 'Bærekraftig forretningsmodell (f.eks. sirkulær økonomimodell, produkt-som-tjeneste)', weight: 1 },
         { id: 'sustainable-services', label: 'Bærekraftig tjenestetilbud (f.eks. brukssporing for videre gjenbruk av andre brukere)', weight: 1 },

@@ -64,15 +64,18 @@ export function ScaleTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => {
+          {rows.map((row, rowIndex) => {
             const rowValue = value[row.id];
-            
+
             return (
-              <tr 
-                key={row.id} 
-                className="border-b border-gray-100 hover:bg-gray-25 transition-colors"
+              <tr
+                key={row.id}
+                className={cn(
+                  "border-b border-gray-100 transition-colors",
+                  rowIndex % 2 === 0 && "bg-gray-50/50"
+                )}
               >
-                <td className="p-3">
+                <td className="p-3 text-left">
                   <div>
                     <div className="text-sm font-medium leading-relaxed">
                       {row.label}
@@ -84,31 +87,43 @@ export function ScaleTable({
                     )}
                   </div>
                 </td>
-                {scales.map((_, index) => (
-                  <td key={index} className="p-2 text-center">
-                    <RadioGroup
-                      value={rowValue?.toString() || ''}
-                      onValueChange={(val) => handleChange(row.id, parseInt(val, 10))}
-                      disabled={disabled}
-                      className="flex justify-center"
+                {scales.map((_, index) => {
+                  const isSelected = rowValue === index;
+                  return (
+                    <td
+                      key={index}
+                      className={cn(
+                        "p-2 text-center cursor-pointer transition-all",
+                        "hover:bg-gray-100",
+                        isSelected && "bg-primary/20 border-2 border-primary",
+                        !isSelected && "border-2 border-transparent"
+                      )}
+                      onClick={() => !disabled && handleChange(row.id, index)}
                     >
-                      <div className="flex items-center">
-                        <RadioGroupItem
-                          value={index.toString()}
-                          id={`${row.id}-${index}`}
-                          className="w-4 h-4"
-                          disabled={disabled}
-                        />
-                        <Label 
-                          htmlFor={`${row.id}-${index}`}
-                          className="sr-only"
-                        >
-                          {row.label} - {scales[index]}
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </td>
-                ))}
+                      <RadioGroup
+                        value={rowValue?.toString() || ''}
+                        onValueChange={(val) => handleChange(row.id, parseInt(val, 10))}
+                        disabled={disabled}
+                        className="flex justify-center pointer-events-none"
+                      >
+                        <div className="flex items-center">
+                          <RadioGroupItem
+                            value={index.toString()}
+                            id={`${row.id}-${index}`}
+                            className="w-4 h-4"
+                            disabled={disabled}
+                          />
+                          <Label
+                            htmlFor={`${row.id}-${index}`}
+                            className="sr-only"
+                          >
+                            {row.label} - {scales[index]}
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </td>
+                  );
+                })}
               </tr>
             );
           })}

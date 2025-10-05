@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ArrowRight, BarChart3, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 export default function AssessmentPage() {
   const router = useRouter();
@@ -199,50 +200,36 @@ export default function AssessmentPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Header */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-2xl font-bold text-primary">
-                    Digital Modenhetsvurdering (DMA)
-                  </CardTitle>
-                  <CardDescription>
-                    {companyDetails ? (
-                      <span>
-                        Vurdering for <strong>{companyDetails.companyName}</strong> • 6 nøkkeldimensjoner
-                      </span>
-                    ) : (
-                      'Vurder din bedrifts digitale modenhet på 6 nøkkeldimensjoner'
-                    )}
-                  </CardDescription>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline" className="text-sm">
-                    {currentQuestionIndex + 1} av {spec.questions.length}
+      {/* Sticky Top Bar */}
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b shadow-sm">
+        <div className="container mx-auto px-4 py-3">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <h1 className="text-lg font-semibold truncate hidden md:block">
+                  Digital Modenhetsvurdering
+                </h1>
+                <h1 className="text-lg font-semibold md:hidden">DMA</h1>
+                <Badge variant="outline" className="shrink-0">
+                  {currentQuestionIndex + 1}/{spec.questions.length} ({Math.round(progress)}%)
+                </Badge>
+                {isCompleted && (
+                  <Badge variant="default" className="bg-green-600 shrink-0 hidden sm:flex">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    Fullført
                   </Badge>
-                  {isCompleted && (
-                    <Badge variant="default" className="text-sm bg-green-600">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      Fullført
-                    </Badge>
-                  )}
-                </div>
+                )}
               </div>
-            </CardHeader>
-            <CardContent>
-              {/* Progress bar */}
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Fremgang</span>
-                  <span>{Math.round(progress)}%</span>
-                </div>
-                <Progress value={progress} className="w-full h-3" />
+              <div className="flex-1 max-w-xs">
+                <Progress value={progress} className="h-2" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto space-y-6">
 
           {/* Current dimension info */}
           {currentDimension && (
@@ -289,69 +276,99 @@ export default function AssessmentPage() {
             </Alert>
             
           )}
-{/* Navigation */}
-          <Card className="border-0 shadow-sm">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={!canGoPrevious}
-                  className="flex items-center space-x-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Forrige</span>
-                </Button>
 
-                <div className="text-center">
-                  <span className="text-sm text-muted-foreground">
-                    Spørsmål {currentQuestionIndex + 1} av {spec.questions.length}
-                  </span>
+          {/* Spacer for sticky footer */}
+          <div className="h-24"></div>
+        </div>
+      </div>
+
+      {/* Sticky Footer Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t shadow-lg z-20">
+        <div className="container mx-auto px-4 py-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between gap-4">
+              <Button
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={!canGoPrevious}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Forrige</span>
+              </Button>
+
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {currentQuestionIndex + 1} / {spec.questions.length}
+                </span>
+
+                {/* Progress dots for dimensions - desktop only */}
+                <div className="hidden md:flex gap-1.5">
+                  {spec.dimensions.map((dim) => {
+                    const dimQuestions = spec.questions.filter(q => q.dimensionId === dim.id);
+                    const completedCount = dimQuestions.filter(q => {
+                      const ans = answers[q.id];
+                      return ans !== undefined && ans !== null && ans !== '';
+                    }).length;
+                    const dimProgress = completedCount / dimQuestions.length;
+
+                    return (
+                      <div
+                        key={dim.id}
+                        className={cn(
+                          "w-2 h-2 rounded-full transition-all",
+                          dimProgress === 1 ? "bg-green-600" :
+                          dimProgress > 0 ? "bg-amber-600" :
+                          "bg-gray-300"
+                        )}
+                        title={dim.name}
+                      />
+                    );
+                  })}
                 </div>
+              </div>
 
-                <div className="flex items-center space-x-2">
-                  {isLastQuestion && isCompleted && (
-                    <Button
-                      onClick={handleGoToResults}
-                      disabled={isSavingResults}
-                      className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
-                    >
-                      {isSavingResults ? (
-                        <>
-                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                          <span>Lagrer...</span>
-                        </>
-                      ) : (
-                        <>
-                          <BarChart3 className="w-4 h-4" />
-                          <span>Se resultater</span>
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  
+              <div className="flex items-center gap-2">
+                {isLastQuestion && isCompleted && (
                   <Button
-                    onClick={handleNext}
-                    disabled={!canGoNext || isSavingResults}
-                    className="flex items-center space-x-2"
+                    onClick={handleGoToResults}
+                    disabled={isSavingResults}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
                   >
-                    {isSavingResults && isLastQuestion ? (
+                    {isSavingResults ? (
                       <>
                         <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                        <span>Lagrer...</span>
+                        <span className="hidden sm:inline">Lagrer...</span>
                       </>
                     ) : (
                       <>
-                        <span>{isLastQuestion ? 'Fullfør' : 'Neste'}</span>
-                        <ArrowRight className="w-4 h-4" />
+                        <BarChart3 className="w-4 h-4" />
+                        <span className="hidden sm:inline">Se resultater</span>
                       </>
                     )}
                   </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                )}
 
+                <Button
+                  onClick={handleNext}
+                  disabled={!canGoNext || isSavingResults}
+                  className="flex items-center gap-2"
+                >
+                  {isSavingResults && isLastQuestion ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      <span className="hidden sm:inline">Lagrer...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">{isLastQuestion ? 'Fullfør' : 'Neste'}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -146,6 +146,52 @@ export function scoreQuestion(question: Question, answer: Answer): number {
 }
 
 /**
+ * Determine whether a stored answer satisfies the completion requirements
+ * for a given question type. This is stricter than simply checking that an
+ * answer object exists and is used for validating required questions.
+ */
+export function isAnswerComplete(question: Question, answer?: Answer): boolean {
+  if (!answer) return false;
+
+  switch (question.type) {
+    case 'checkboxes': {
+      const checkboxAnswer = answer as Extract<Answer, { type: 'checkboxes' }>;
+      return Boolean(checkboxAnswer.selected && checkboxAnswer.selected.length > 0);
+    }
+    case 'dual-checkboxes': {
+      const dualAnswer = answer as Extract<Answer, { type: 'dual-checkboxes' }>;
+      return Boolean(dualAnswer.left || dualAnswer.right);
+    }
+    case 'scale-0-5': {
+      const scaleAnswer = answer as Extract<Answer, { type: 'scale-0-5' }>;
+      return typeof scaleAnswer.value === 'number';
+    }
+    case 'tri-state': {
+      const triAnswer = answer as Extract<Answer, { type: 'tri-state' }>;
+      return triAnswer.value === 'yes' || triAnswer.value === 'partial' || triAnswer.value === 'no';
+    }
+    case 'table-dual-checkboxes': {
+      const tableAnswer = answer as Extract<Answer, { type: 'table-dual-checkboxes' }>;
+      const rows = Object.values(tableAnswer.rows || {});
+      return rows.some(row => Boolean(row && (row.left || row.right)));
+    }
+    case 'scale-table': {
+      const scaleTableAnswer = answer as Extract<Answer, { type: 'scale-table' }>;
+      return question.rows.every(row => typeof scaleTableAnswer.rows[row.id] === 'number');
+    }
+    case 'tri-state-table': {
+      const triTableAnswer = answer as Extract<Answer, { type: 'tri-state-table' }>;
+      return question.rows.every(row => {
+        const value = triTableAnswer.rows[row.id];
+        return value === 'yes' || value === 'partial' || value === 'no';
+      });
+    }
+    default:
+      return false;
+  }
+}
+
+/**
  * Compute dimension scores from answers
  * Returns array of dimension scores (0-100) with targets and gaps
  */
@@ -212,6 +258,7 @@ export function calculateProgress(spec: AssessmentSpec, answers: AnswerMap): num
  */
 export function validateAnswers(spec: AssessmentSpec, answers: AnswerMap): string[] {
   return spec.questions
-    .filter(q => (q.required ?? true) && !answers[q.id])
+    .filter(q => q.required ?? true)
+    .filter(q => !isAnswerComplete(q, answers[q.id]))
     .map(q => q.id);
 }

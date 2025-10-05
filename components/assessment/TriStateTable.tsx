@@ -68,15 +68,18 @@ export function TriStateTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => {
+          {rows.map((row, rowIndex) => {
             const rowValue = value[row.id];
-            
+
             return (
-              <tr 
-                key={row.id} 
-                className="border-b border-gray-100 hover:bg-gray-25 transition-colors"
+              <tr
+                key={row.id}
+                className={cn(
+                  "border-b border-gray-100 transition-colors",
+                  rowIndex % 2 === 0 && "bg-gray-50/50"
+                )}
               >
-                <td className="p-3">
+                <td className="p-3 text-left">
                   <div>
                     <div className="text-sm font-medium leading-relaxed">
                       {row.label}
@@ -88,35 +91,47 @@ export function TriStateTable({
                     )}
                   </div>
                 </td>
-                {stateOptions.map((option) => (
-                  <td key={option.value} className="p-3 text-center">
-                    <RadioGroup
-                      value={rowValue || ''}
-                      onValueChange={(val) => handleChange(row.id, val as 'yes' | 'partial' | 'no')}
-                      disabled={disabled}
-                      className="flex justify-center"
+                {stateOptions.map((option) => {
+                  const isSelected = rowValue === option.value;
+                  return (
+                    <td
+                      key={option.value}
+                      className={cn(
+                        "p-3 text-center cursor-pointer transition-all",
+                        "hover:bg-gray-100",
+                        isSelected && "bg-primary/20 border-2 border-primary",
+                        !isSelected && "border-2 border-transparent"
+                      )}
+                      onClick={() => !disabled && handleChange(row.id, option.value)}
                     >
-                      <div className="flex items-center">
-                        <RadioGroupItem
-                          value={option.value}
-                          id={`${row.id}-${option.value}`}
-                          className={cn(
-                            "w-4 h-4",
-                            rowValue === option.value && option.colorClass,
-                            rowValue === option.value && "border-current"
-                          )}
-                          disabled={disabled}
-                        />
-                        <Label 
-                          htmlFor={`${row.id}-${option.value}`}
-                          className="sr-only"
-                        >
-                          {row.label} - {option.label}
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </td>
-                ))}
+                      <RadioGroup
+                        value={rowValue || ''}
+                        onValueChange={(val) => handleChange(row.id, val as 'yes' | 'partial' | 'no')}
+                        disabled={disabled}
+                        className="flex justify-center pointer-events-none"
+                      >
+                        <div className="flex items-center">
+                          <RadioGroupItem
+                            value={option.value}
+                            id={`${row.id}-${option.value}`}
+                            className={cn(
+                              "w-4 h-4",
+                              isSelected && option.colorClass,
+                              isSelected && "border-current"
+                            )}
+                            disabled={disabled}
+                          />
+                          <Label
+                            htmlFor={`${row.id}-${option.value}`}
+                            className="sr-only"
+                          >
+                            {row.label} - {option.label}
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </td>
+                  );
+                })}
               </tr>
             );
           })}
