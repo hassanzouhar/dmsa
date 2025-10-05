@@ -35,6 +35,7 @@ import BenchmarkSection from '@/components/benchmark/BenchmarkSection';
 import ExtendedResultsModal from '@/components/modals/ExtendedResultsModal';
 import { getCountyName, extractCountyCodeFromRegion } from '@/data/norwegian-counties';
 import { getSectorDisplayName, getCompanySizeDisplayName } from '@/lib/benchmark-service';
+import { mapNaceToSector } from '@/lib/nace';
 import { getCountryDisplayName } from '@/data/countries';
 
 export default function ResultsPage() {
@@ -164,7 +165,7 @@ export default function ResultsPage() {
         setUserDetails(prev => ({
           ...prev,
           companyName: companyDetails.companyName || '',
-          sector: mapNACEToSector(companyDetails.naceSector) || '',
+          sector: mapNaceToSector(companyDetails.naceSector) || '',
           companySize: companyDetails.companySize || '',
           region: regionValue,
           country: companyDetails.country || '',
@@ -212,34 +213,6 @@ export default function ResultsPage() {
     };
   }, [spec, answers, resultsData]);
   
-  // Helper function to map NACE sector codes to simple sector names
-  const mapNACEToSector = (naceCode: string): string => {
-    const sectorMap: Record<string, string> = {
-      'A': 'other',     // Agriculture
-      'B': 'other',     // Mining
-      'C': 'manufacturing', // Manufacturing
-      'D': 'other',     // Electricity/gas
-      'E': 'other',     // Water/waste
-      'F': 'other',     // Construction
-      'G': 'retail',    // Wholesale/retail
-      'H': 'other',     // Transportation
-      'I': 'services',  // Accommodation/food
-      'J': 'services',  // Information/communication
-      'K': 'services',  // Financial
-      'L': 'services',  // Real estate
-      'M': 'services',  // Professional/scientific
-      'N': 'services',  // Administrative
-      'O': 'government', // Public administration
-      'P': 'education', // Education
-      'Q': 'healthcare', // Health/social work
-      'R': 'services',  // Arts/entertainment
-      'S': 'services',  // Other services
-      'T': 'other',     // Households
-      'U': 'government' // Extraterritorial
-    };
-    return sectorMap[naceCode] || 'other';
-  };
-
   // Redirect if no survey data is available after loading
   useEffect(() => {
     if (!isLoading && !surveyData && !spec) {

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { createRetrievalToken, checkRateLimit } from '@/lib/token-utils';
+import { mapNaceToSector } from '@/lib/nace';
 import { 
   SurveyDocument, 
   CompanyDetails, 
@@ -17,35 +18,6 @@ import {
   Language,
 } from '@/types/firestore-schema';
 import { v4 as uuidv4 } from 'uuid';
-
-// Map NACE codes to simplified sectors
-function mapNACEToSector(nace: string): 'manufacturing' | 'services' | 'retail' | 'healthcare' | 'education' | 'government' | 'finance' | 'other' {
-  const sectorMap: Record<string, 'manufacturing' | 'services' | 'retail' | 'healthcare' | 'education' | 'government' | 'finance' | 'other'> = {
-    'A': 'other',        // Agriculture, forestry and fishing
-    'B': 'other',        // Mining and quarrying
-    'C': 'manufacturing', // Manufacturing
-    'D': 'other',        // Electricity, gas, steam and air conditioning supply
-    'E': 'other',        // Water supply; sewerage, waste management
-    'F': 'other',        // Construction
-    'G': 'retail',       // Wholesale and retail trade
-    'H': 'other',        // Transportation and storage
-    'I': 'services',     // Accommodation and food service activities
-    'J': 'services',     // Information and communication
-    'K': 'finance',      // Financial and insurance activities
-    'L': 'services',     // Real estate activities
-    'M': 'services',     // Professional, scientific and technical activities
-    'N': 'services',     // Administrative and support service activities
-    'O': 'government',   // Public administration and defence
-    'P': 'education',    // Education
-    'Q': 'healthcare',   // Human health and social work activities
-    'R': 'services',     // Arts, entertainment and recreation
-    'S': 'services',     // Other service activities
-    'T': 'other',        // Household activities as employers
-    'U': 'government'    // Extraterritorial organisations and bodies
-  };
-
-  return sectorMap[nace.charAt(0)?.toUpperCase()] || 'other';
-}
 
 // Input validation for company details
 function validateCompanyDetails(details: unknown): details is CompanyDetails {
@@ -175,7 +147,7 @@ export async function POST(request: NextRequest) {
     const { token, tokenHash, createdAt, revoked } = createRetrievalToken();
     
     // Derive sector from NACE code
-    const sector = mapNACEToSector(companyDetails.nace);
+    const sector = mapNaceToSector(companyDetails.nace);
     
     // Create survey document
     const surveyDoc: SurveyDocument = {
