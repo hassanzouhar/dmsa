@@ -6,7 +6,16 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { MagicLinkRequest } from '@/components/MagicLinkRequest';
+import {
   BarChart3,
+  WandSparkles,
   MountainSnow,
   MapPinned,
   CheckCircle,
@@ -52,6 +61,7 @@ export default function HomePage() {
     averageScore: 0
   });
   const [loading, setLoading] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -184,27 +194,38 @@ export default function HomePage() {
                   Vurderingen er gratis, tar under 20 minutter og fokuserer på håndfast digital praksis fremfor buzz-ord. Ingen hype – bare innsikt du kan ta med til neste styremøte.
                 </p>
               </div>
-                <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-3">
-                <Link href="/company-details" className="w-full sm:w-auto">
-                  <Button size="lg" className="w-auto text-base md:text-lg px-6 md:px-8 py-5 md:py-6">
-                  <ScanSearch className="w-5 h-5 mr-2" />
-                  Få din vurdering
-                  </Button>
-                </Link>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto text-base md:text-lg px-6 md:px-8 py-5 md:py-6 relative"
-                  onClick={() => router.push('/leaderboard')}
-                >
-                  <RadioTower className="w-auto h-5 mr-2" />
-                  Bransjetrend LIVE
-                  <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800 text-xs font-semibold align-middle">
-                    beta
-                  </span>
-                </Button>
+                <div className="flex flex-col sm:items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-3">
+                    <Link href="/company-details" className="w-full sm:w-auto">
+                      <Button size="lg" className="w-full text-base md:text-lg px-6 md:px-8 py-5 md:py-6">
+                        <ScanSearch className="w-5 h-5 mr-2" />
+                        Få din vurdering
+                      </Button>
+                    </Link>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="w-full sm:w-auto text-base md:text-lg px-6 md:px-8 py-5 md:py-6 relative"
+                      onClick={() => router.push('/leaderboard')}
+                    >
+                      <RadioTower className="w-auto h-5 mr-2" />
+                      Bransjetrend LIVE
+                      <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800 text-xs font-semibold align-middle">
+                        beta
+                      </span>
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Allerede registrert?{' '}
+                    <button
+                      onClick={() => setShowLoginModal(true)}
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Logg inn
+                    </button>
+                  </p>
                 </div>
-
+                
               {surveyStats.count > 0 && (
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4 max-w-auto mx-auto">
                   {heroHighlights.map((stat) => {
@@ -377,6 +398,36 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* Login Modal */}
+      <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
+        <DialogContent className="sm:max-w-[520px] p-0 gap-0 overflow-hidden">
+          {/* Header with gradient background */}
+          <div className="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 px-6 py-8 text-white">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-400/20" />
+            <div className="relative">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-white mb-2">
+                  Enkel pålogging med magisk lenke
+                </DialogTitle>
+                <DialogDescription className="text-blue-50">
+                  Null stress.. Ingen passord å huske. Vi sender deg en sikker lenke på e-post. 
+              </DialogDescription>
+              </DialogHeader>
+            </div>
+          </div>
+
+          {/* Form content */}
+          <div className="px-6 py-6">
+            <MagicLinkRequest
+              title=""
+              description=""
+              className="border-0 shadow-none p-0"
+              onSuccess={() => setShowLoginModal(false)}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

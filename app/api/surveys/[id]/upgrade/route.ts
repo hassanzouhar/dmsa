@@ -7,7 +7,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { verifyToken, checkRateLimit } from '@/lib/token-utils';
-import { 
+import { addSurveyToEmail } from '@/lib/email-survey-mapping';
+import { sendAssessmentCompleteEmail } from '@/lib/email-service';
+import {
   SurveyDocument,
   PrivateUserDetailsDocument,
   ApiError,
@@ -183,6 +185,15 @@ export async function POST(
     // Commit the batch
     await batch.commit();
 
+    // Add email to survey mapping for magic link retrieval
+    try {
+      await addSurveyToEmail(userDetails.email, surveyId);
+      console.log(`✅ Added email mapping for survey ${surveyId}`);
+    } catch (error) {
+      console.error('Failed to add email mapping:', error);
+      // Don't fail the upgrade if mapping fails - it's not critical
+    }
+
     // Track upgrade event
     const analyticsEvent: Record<string, unknown> = {
       event: 'survey_upgraded',
@@ -196,15 +207,36 @@ export async function POST(
       sector: survey.companyDetails.sector,
       region: survey.companyDetails.region,
     };
-    
+
     const userAgent = request.headers.get('user-agent');
     if (userAgent) {
       analyticsEvent.userAgent = userAgent;
     }
-    
+
     await db.collection('analytics_events').add(analyticsEvent);
 
     console.log(`✅ Survey upgraded to T1: ${surveyId}`);
+
+    // Send assessment completion email with retrieval link
+    try {
+      // Get the original retrieval token from request (we need it for the email link)
+      const emailResult = await sendAssessmentCompleteEmail({
+        email: userDetails.email,
+        surveyId,
+        retrievalToken: token, // Use the token from the request
+        overallScore: survey.overallScore,
+      });
+
+      if (emailResult.success) {
+        console.log(`✅ Assessment completion email sent to ${userDetails.email}`);
+      } else {
+        console.warn(`⚠️  Failed to send completion email: ${emailResult.error}`);
+        // Don't fail the upgrade if email fails
+      }
+    } catch (emailError) {
+      console.error('Error sending completion email:', emailError);
+      // Don't fail the upgrade if email fails
+    }
 
     return NextResponse.json(
       {

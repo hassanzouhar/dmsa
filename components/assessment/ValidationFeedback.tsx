@@ -114,7 +114,7 @@ export const ValidationFeedback: React.FC<ValidationFeedbackProps> = ({
         </Alert>
       )}
 
-      {/* Single completion indicator - only when fully complete */}
+      {/* Single completion indicator - only when fully complete 
       {status === 'complete' && completionPercentage === 100 && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-2">
           <div className="flex items-center gap-2 text-green-800">
@@ -124,7 +124,7 @@ export const ValidationFeedback: React.FC<ValidationFeedbackProps> = ({
             </span>
           </div>
         </div>
-      )}
+      )}*/}
     </div>
   );
 };

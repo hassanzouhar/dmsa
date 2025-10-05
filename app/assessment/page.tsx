@@ -287,9 +287,9 @@ export default function AssessmentPage() {
                 </ul>
               </AlertDescription>
             </Alert>
+            
           )}
-
-          {/* Navigation */}
+{/* Navigation */}
           <Card className="border-0 shadow-sm">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -357,3 +357,4 @@ export default function AssessmentPage() {
     </div>
   );
 }
+          

@@ -35,7 +35,7 @@ export interface SurveyFlags {
   isCompleted: boolean; // Assessment completed
   hasResults: boolean; // Results computed and stored
   hasExpandedAccess: boolean; // User provided email (T1 state)
-  isAnonymous?: boolean; // Participate anonymously in public leaderboard
+  includeInLeaderboard: boolean; // Include in public leaderboard (default: true, user can opt out)
 }
 
 // Retrieval token for secure access

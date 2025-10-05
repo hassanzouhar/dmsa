@@ -71,9 +71,9 @@ export default function ResultsPage() {
   // Extended modal state
   const [showExtendedModal, setShowExtendedModal] = useState(false);
 
-  // Anonymous participation state
-  const [isAnonymous, setIsAnonymous] = useState(true);
-  const [isUpdatingAnonymous, setIsUpdatingAnonymous] = useState(false);
+  // Leaderboard inclusion state
+  const [includeInLeaderboard, setIncludeInLeaderboard] = useState(true);
+  const [isUpdatingLeaderboard, setIsUpdatingLeaderboard] = useState(false);
 
   // Store state
   const { spec, answers, surveySession} = useAssessmentStore();
@@ -95,16 +95,9 @@ export default function ResultsPage() {
             setSurveyId(urlSurveyId);
             setRetrievalToken(urlToken);
             setHasExpandedAccess(results.hasExpandedAccess);
-            const serverAnonymous = results.survey.flags.isAnonymous;
-            const defaultAnonymous = serverAnonymous !== false;
-            setIsAnonymous(defaultAnonymous);
-            if ((serverAnonymous === undefined || serverAnonymous === null) && defaultAnonymous) {
-              try {
-                await updateAnonymousFlag(urlSurveyId, true, urlToken);
-              } catch (error) {
-                console.error('Failed to set default anonymous flag:', error);
-              }
-            }
+            // Get leaderboard inclusion status (default to true if not set)
+            const includeFlag = results.survey.flags.includeInLeaderboard ?? true;
+            setIncludeInLeaderboard(includeFlag);
             setIsLoading(false);
             console.log(`✅ Loaded survey from new API`);
             return;
@@ -125,16 +118,9 @@ export default function ResultsPage() {
             setSurveyData(results.survey);
             setResultsData(results.results);
             setHasExpandedAccess(results.hasExpandedAccess);
-            const serverAnonymous = results.survey.flags.isAnonymous;
-            const defaultAnonymous = serverAnonymous !== false;
-            setIsAnonymous(defaultAnonymous);
-            if ((serverAnonymous === undefined || serverAnonymous === null) && defaultAnonymous) {
-              try {
-                await updateAnonymousFlag(surveySession.surveyId, true, surveySession.retrievalToken);
-              } catch (error) {
-                console.error('Failed to set default anonymous flag:', error);
-              }
-            }
+            // Get leaderboard inclusion status (default to true if not set)
+            const includeFlag = results.survey.flags.includeInLeaderboard ?? true;
+            setIncludeInLeaderboard(includeFlag);
             setIsLoading(false);
             return;
           }
@@ -293,38 +279,38 @@ export default function ResultsPage() {
     }
   };
 
-  // Handle anonymous participation toggle
-  const handleAnonymousToggle = async (checked: boolean) => {
-    if (checked === isAnonymous) {
+  // Handle leaderboard inclusion toggle
+  const handleLeaderboardToggle = async (include: boolean) => {
+    if (include === includeInLeaderboard) {
       return;
     }
     if (!surveyId || !retrievalToken) {
-      toast.error('Cannot update anonymous setting');
+      toast.error('Cannot update leaderboard setting');
       return;
     }
 
-    setIsUpdatingAnonymous(true);
-    const previousValue = isAnonymous;
-    setIsAnonymous(checked);
+    setIsUpdatingLeaderboard(true);
+    const previousValue = includeInLeaderboard;
+    setIncludeInLeaderboard(include);
     try {
-      const success = await updateAnonymousFlag(surveyId, checked, retrievalToken);
+      const success = await updateAnonymousFlag(surveyId, !include, retrievalToken); // Note: updateAnonymousFlag takes inverse (isAnonymous)
 
       if (success) {
         toast.success(
-          checked
-            ? 'Your results will appear anonymously on the leaderboard'
-            : 'Your company name will be visible on the leaderboard'
+          include
+            ? 'Your results will be included in the public leaderboard'
+            : 'Your results have been removed from the leaderboard'
         );
       } else {
-        setIsAnonymous(previousValue);
-        toast.error('Failed to update anonymous setting');
+        setIncludeInLeaderboard(previousValue);
+        toast.error('Failed to update leaderboard setting');
       }
     } catch (error) {
-      console.error('Failed to update anonymous flag:', error);
-      setIsAnonymous(previousValue);
-      toast.error('Failed to update anonymous setting');
+      console.error('Failed to update leaderboard flag:', error);
+      setIncludeInLeaderboard(previousValue);
+      toast.error('Failed to update leaderboard setting');
     } finally {
-      setIsUpdatingAnonymous(false);
+      setIsUpdatingLeaderboard(false);
     }
   };
 
@@ -680,7 +666,7 @@ export default function ResultsPage() {
           </Card>
 
           
-           {/* Anonymous Participation Option */}
+           {/* Leaderboard Participation Option */}
           {surveyId && retrievalToken && (
             <Card className="border-purple-200 bg-purple-50">
               <CardContent className="pt-6">
@@ -691,48 +677,46 @@ export default function ResultsPage() {
                   <div className="flex-1 space-y-3">
                     <div>
                       <h3 className="font-semibold text-purple-900 mb-1">
-                        Bli en del av &quot;NM i Digitalisering&quot;! 
+                        Bli en del av &quot;NM i Digitalisering&quot;!
                       </h3>
                       <p className="text-sm text-purple-800">
-                        Vi trenger mer fokus på praktisk bruk av teknologi for å øke digitaliseringsgraden i næringslivet! Ved å bli en del av statistikken så hjelper du også andre bedrifter ved å dele bedriftens poengsum. Dere kan velge å være med anonymt eller med bedriftens navn.
-                        Dine resultater vil bidra til bransjebenchmarks uten å avsløre bedriftens identitet.
+                        Vi trenger mer fokus på praktisk bruk av teknologi for å øke digitaliseringsgraden i næringslivet!
+                        Som standard vises alle bedrifter anonymt på resultattavlen og bidrar til bransjestatistikk.
+                        Du kan når som helst velge å fjerne resultatene dine fra tavlen.
                       </p>
                     </div>
                     <div className="space-y-3">
-                      <p className="text-sm text-purple-800">
-                        Velg hvordan resultatene deres skal vises på tavlen.
-                      </p>
                       <RadioGroup
-                        value={isAnonymous ? 'anonymous' : 'public'}
-                        onValueChange={(value) => handleAnonymousToggle(value === 'anonymous')}
-                        disabled={isUpdatingAnonymous}
+                        value={includeInLeaderboard ? 'include' : 'exclude'}
+                        onValueChange={(value) => handleLeaderboardToggle(value === 'include')}
+                        disabled={isUpdatingLeaderboard}
                         className="grid gap-3 sm:grid-cols-2"
                       >
-                        <div className={`flex items-start gap-3 rounded-lg border p-3 transition-all ${isAnonymous ? 'border-purple-400 bg-white' : 'border-transparent bg-purple-100/40'}`}>
-                          <RadioGroupItem value="anonymous" id="participation-anonymous" />
+                        <div className={`flex items-start gap-3 rounded-lg border p-3 transition-all ${includeInLeaderboard ? 'border-purple-400 bg-white' : 'border-transparent bg-purple-100/40'}`}>
+                          <RadioGroupItem value="include" id="leaderboard-include" />
                           <div>
-                            <Label htmlFor="participation-anonymous" className="text-sm font-medium text-purple-900">
-                              Delta anonymt (anbefalt)
+                            <Label htmlFor="leaderboard-include" className="text-sm font-medium text-purple-900">
+                              Vis på resultattavlen (anbefalt)
                             </Label>
                             <p className="text-xs text-purple-700 mt-1">
-                              Resultatene vises uten firmanavn, men bidrar til bransjestatistikken.
+                              Resultatene vises anonymt og bidrar til bransjestatistikk.
                             </p>
                           </div>
                         </div>
-                        <div className={`flex items-start gap-3 rounded-lg border p-3 transition-all ${!isAnonymous ? 'border-purple-400 bg-white' : 'border-transparent bg-purple-100/40'}`}>
-                          <RadioGroupItem value="public" id="participation-public" />
+                        <div className={`flex items-start gap-3 rounded-lg border p-3 transition-all ${!includeInLeaderboard ? 'border-purple-400 bg-white' : 'border-transparent bg-purple-100/40'}`}>
+                          <RadioGroupItem value="exclude" id="leaderboard-exclude" />
                           <div>
-                            <Label htmlFor="participation-public" className="text-sm font-medium text-purple-900">
-                              Vis bedriftens navn
+                            <Label htmlFor="leaderboard-exclude" className="text-sm font-medium text-purple-900">
+                              Skjul fra tavlen
                             </Label>
                             <p className="text-xs text-purple-700 mt-1">
-                              Resultatene publiseres med bedriftens navn på resultattavlen.
+                              Resultatene dine vil ikke vises på resultattavlen.
                             </p>
                           </div>
                         </div>
                       </RadioGroup>
-                      {isUpdatingAnonymous && (
-                        <p className="text-xs text-purple-700">Oppdaterer visningsinnstilling…</p>
+                      {isUpdatingLeaderboard && (
+                        <p className="text-xs text-purple-700">Oppdaterer innstilling…</p>
                       )}
                     </div>
                     <Button

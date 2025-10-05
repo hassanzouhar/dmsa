@@ -32,7 +32,6 @@ export interface LeaderboardEntry {
     greenDigitalization: number;
   };
   completedAt: string;
-  isAnonymous: boolean;
   rank?: number;
 }
 
@@ -138,8 +137,8 @@ export async function getLeaderboardEntries(options: {
     // Skip surveys without scores
     if (!survey.scores) return;
 
-    // Respect sharing preference: if explicitly disabled, skip
-    if (survey.flags?.isAnonymous === false) {
+    // Only include surveys that have opted in to leaderboard (default is true)
+    if (survey.flags?.includeInLeaderboard === false) {
       return;
     }
 
@@ -177,7 +176,6 @@ export async function getLeaderboardEntries(options: {
         greenDigitalization: (survey.scores.dimensions.greenDigitalization?.score || 0) / 10,
       },
       completedAt: survey.completedAt || survey.createdAt,
-      isAnonymous: survey.flags.isAnonymous || false,
     };
 
     entries.push(entry);

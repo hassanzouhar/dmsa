@@ -48,7 +48,6 @@ interface LeaderboardEntry {
     greenDigitalization: number;
   };
   completedAt: string;
-  isAnonymous: boolean;
   rank?: number;
 }
 
@@ -162,9 +161,9 @@ export default function LeaderboardPage() {
 
   const getScoreLevel = (score: number) => {
     // Scores are 0-10 scale
-    if (score >= 4.5) return { level: 'Ekspertise', color: 'bg-green-500' };
-    if (score >= 3.5) return { level: 'Avansert', color: 'bg-blue-500' };
-    if (score >= 2.5) return { level: 'Kompetent', color: 'bg-yellow-500' };
+    if (score >= 6.5) return { level: 'Future Proofing', color: 'bg-green-500' };
+    if (score >= 4.5) return { level: 'Strategisk', color: 'bg-blue-500' };
+    if (score >= 2.5) return { level: 'Utforskende', color: 'bg-yellow-500' };
     if (score >= 1.5) return { level: 'Grunnleggende', color: 'bg-orange-500' };
     return { level: 'Begynnernivå', color: 'bg-red-500' };
   };
@@ -281,7 +280,7 @@ export default function LeaderboardPage() {
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-gray-600">
-            Viser {filteredData.length} bedrifter. Alle navn anonymiseres automatisk.
+            Viser {filteredData.length} bedrifter. Alle vises anonymt med genererte alias.
           </p>
           <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
             <div className="flex items-center gap-2">
