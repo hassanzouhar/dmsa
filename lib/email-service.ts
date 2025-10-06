@@ -37,12 +37,6 @@ export async function sendMagicLinkEmail(
     token
   )}&email=${encodeURIComponent(email)}`;
 
-  const expiryTime = expiryDate.toLocaleTimeString('no-NO', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Europe/Oslo',
-  });
-
   const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -73,9 +67,9 @@ export async function sendMagicLinkEmail(
       </a>
     </div>
 
-    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 5px; margin: 25px 0;">
-      <p style="margin: 0; font-size: 14px; color: #92400e;">
-        <strong>⏰ Viktig:</strong> Denne lenken utløper kl. ${expiryTime} i dag. Be om en ny lenke hvis denne har utløpt.
+    <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 5px; margin: 25px 0;">
+      <p style="margin: 0; font-size: 14px; color: #1e40af;">
+        <strong>🔒 Sikkerhet:</strong> Denne lenken er gyldig i 24 timer og kan brukes flere ganger for å få tilgang til dine vurderinger.
       </p>
     </div>
 
@@ -123,7 +117,7 @@ Klikk på lenken nedenfor for å se alle dine ${surveyCount} ${surveyCount === 1
 
 ${magicLinkUrl}
 
-⏰ VIKTIG: Denne lenken utløper kl. ${expiryTime} i dag.
+🔒 SIKKERHET: Denne lenken er gyldig i 24 timer og kan brukes flere ganger.
 
 Når du får tilgang kan du:
 - Se alle dine fullførte vurderinger

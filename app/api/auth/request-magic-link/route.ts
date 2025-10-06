@@ -62,20 +62,25 @@ export async function POST(request: NextRequest) {
 
     const { email } = validation.data;
 
-    // Check rate limit
-    const rateLimit = checkRateLimit(email);
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'RATE_LIMIT_EXCEEDED',
-            error: 'Too many requests',
-            details: `Please wait until ${rateLimit.resetAt?.toLocaleTimeString()} before requesting another magic link.`,
+    // Check rate limit (skip in development)
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    if (!isDevelopment) {
+      const rateLimit = checkRateLimit(email);
+      if (!rateLimit.allowed) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'RATE_LIMIT_EXCEEDED',
+              error: 'Too many requests',
+              details: `Please wait until ${rateLimit.resetAt?.toLocaleTimeString()} before requesting another magic link.`,
+            },
           },
-        },
-        { status: 429 }
-      );
+          { status: 429 }
+        );
+      }
+    } else {
+      console.log('⚠️  Rate limiting disabled in development mode');
     }
 
     // Check if email has any surveys
@@ -97,9 +102,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create magic link
+    console.log(`🔗 Creating magic link for: ${email}`);
     const { token, expiry } = await createMagicLink(email);
+    console.log(`✅ Magic link created, expires at: ${expiry.toISOString()}`);
 
     // Send email
+    console.log(`📧 Sending magic link email to: ${email}`);
     const emailResult = await sendMagicLinkEmail({
       email,
       token,

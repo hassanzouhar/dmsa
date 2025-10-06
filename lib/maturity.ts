@@ -5,10 +5,10 @@ import { MaturityBand, DimensionScore } from '@/types/assessment';
  * Based on EU/JRC Digital Maturity Assessment levels (0-100 scale)
  */
 export const defaultMaturityBands: MaturityBand[] = [
-  { min: 0, max: 25, labelKey: 'maturity.level1', level: 1 },   // Basic
-  { min: 26, max: 50, labelKey: 'maturity.level2', level: 2 },  // Average
-  { min: 51, max: 75, labelKey: 'maturity.level3', level: 3 },  // Moderately Advanced
-  { min: 76, max: 100, labelKey: 'maturity.level4', level: 4 }, // Advanced
+  { min: 0, max: 25, labelKey: 'EDB?', level: 1 },   // Basic
+  { min: 26, max: 50, labelKey: 'Utforker', level: 2 },  // Average
+  { min: 51, max: 75, labelKey: 'Digitaliserer Kjernen', level: 3 },  // Moderately Advanced
+  { min: 76, max: 100, labelKey: 'Heldigital Sjappe', level: 4 }, // Advanced
 ];
 
 /**

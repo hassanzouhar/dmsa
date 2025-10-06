@@ -37,10 +37,16 @@ export async function POST(request: NextRequest) {
 
     const { email, token } = validation.data;
 
+    console.log(`🔐 Verifying magic link for email: ${email}`);
+    console.log(`🔑 Token: ${token.substring(0, 20)}...`);
+
     // Verify magic link token
     const verification = await verifyMagicLinkToken(token, email);
 
+    console.log(`📋 Verification result:`, verification);
+
     if (!verification.valid) {
+      console.warn(`❌ Magic link verification failed: ${verification.reason}`);
       return NextResponse.json(
         {
           success: false,

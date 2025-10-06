@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,12 +42,15 @@ function AccessPageContent() {
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasVerifiedRef = useRef(false); // Prevent double verification in React Strict Mode
 
   // Verify magic link token on mount
   useEffect(() => {
-    if (token && email) {
+    if (token && email && !hasVerifiedRef.current) {
+      hasVerifiedRef.current = true;
       verifyMagicLink(token, email);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, email]);
 
   const verifyMagicLink = async (magicToken: string, magicEmail: string) => {
@@ -72,16 +75,30 @@ function AccessPageContent() {
         setSurveys(data.data.surveys);
         setVerifiedEmail(data.data.email);
         setSessionToken(data.data.sessionToken);
+
+        // Store session in sessionStorage immediately
+        if (data.data.sessionToken) {
+          try {
+            sessionStorage.setItem('dmsa-session', data.data.sessionToken);
+            console.log('✅ Session token stored');
+          } catch (e) {
+            console.warn('Failed to store session token:', e);
+          }
+        }
+
         toast.success(`Velkommen tilbake!`, {
           description: `Du har tilgang til ${data.data.surveys.length} ${data.data.surveys.length === 1 ? 'vurdering' : 'vurderinger'}.`,
         });
+        setIsVerifying(false);
       } else {
+        console.error('Verification failed:', data.error);
         setError(data.error?.error || 'Kunne ikke verifisere lenken');
         if (data.error?.code === 'INVALID_TOKEN') {
           toast.error('Ugyldig eller utløpt lenke', {
-            description: 'Lenken kan ha utløpt eller allerede blitt brukt. Be om en ny lenke.',
+            description: data.error?.details || 'Lenken kan ha utløpt eller allerede blitt brukt. Be om en ny lenke.',
           });
         }
+        setIsVerifying(false);
       }
     } catch (err) {
       console.error('Verification error:', err);
@@ -209,11 +226,15 @@ function AccessPageContent() {
                       key={survey.id}
                       className="hover:shadow-md transition-shadow cursor-pointer"
                       onClick={() => {
-                        // Store session token in localStorage for authenticated access
+                        // Store session token for authenticated access
                         if (sessionToken) {
-                          sessionStorage.setItem('dmsa-session', sessionToken);
+                          try {
+                            sessionStorage.setItem('dmsa-session', sessionToken);
+                          } catch (e) {
+                            console.warn('Failed to store session:', e);
+                          }
                         }
-                        // Navigate to results - the results page will need to handle session-based access
+                        // Navigate to results - results page will validate session
                         router.push(`/results?id=${survey.id}`);
                       }}
                     >

@@ -58,7 +58,7 @@ export default function ResultsPage() {
   const [hasExpandedAccess, setHasExpandedAccess] = useState(false);
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
-  
+
   // Form state for email capture
   const [userDetails, setUserDetails] = useState({
     email: '',
@@ -69,13 +69,20 @@ export default function ResultsPage() {
     country: '',
     countyCode: ''
   });
-  
+
   // Extended modal state
   const [showExtendedModal, setShowExtendedModal] = useState(false);
 
   // Leaderboard inclusion state
   const [includeInLeaderboard, setIncludeInLeaderboard] = useState(true);
   const [isUpdatingLeaderboard, setIsUpdatingLeaderboard] = useState(false);
+
+  // Benchmark averages state
+  const [benchmarkAverages, setBenchmarkAverages] = useState<{
+    sector?: number;
+    companySize?: number;
+    county?: number;
+  }>({});
 
   // Store state
   const { spec, answers, surveySession} = useAssessmentStore();
@@ -219,6 +226,47 @@ export default function ResultsPage() {
       }
     }
   }, []);
+
+  // Fetch benchmark averages
+  useEffect(() => {
+    const fetchBenchmarkAverages = async () => {
+      const sector = surveyData?.companyDetails?.sector || userDetails.sector;
+      const companySize = surveyData?.companyDetails?.companySize || userDetails.companySize;
+      const region = surveyData?.companyDetails?.region || userDetails.region;
+
+      console.log('🔄 Fetching benchmarks for:', { sector, companySize, region });
+
+      if (!sector && !companySize && !region) {
+        console.log('⚠️ No benchmark criteria available, skipping fetch');
+        return;
+      }
+
+      try {
+        const params = new URLSearchParams();
+        if (sector) params.append('sector', sector);
+        if (companySize) params.append('companySize', companySize);
+        if (region) params.append('region', region);
+
+        const url = `/api/benchmarks/averages?${params.toString()}`;
+        console.log('📡 Fetching:', url);
+
+        const response = await fetch(url);
+        console.log('📥 Response status:', response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Benchmark data received:', data);
+          setBenchmarkAverages(data);
+        } else {
+          console.error('❌ Benchmark fetch failed:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('❌ Failed to fetch benchmark averages:', error);
+      }
+    };
+
+    fetchBenchmarkAverages();
+  }, [surveyData?.companyDetails, userDetails]);
   
   // Compute results - use new API data if available, otherwise compute from store
   const results = useMemo(() => {
@@ -568,17 +616,20 @@ export default function ResultsPage() {
               </div>
             </CardHeader>
           </Card>
-           <Card className="shadow-lg">
+
+          {/* Merged: Company Profile + Score */}
+          <Card className="border-2 border-primary/20 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building className="w-5 h-5 text-primary" />
-                Bedriftsprofil
+                Bedriftsprofil og Resultat
               </CardTitle>
               <CardDescription>
-                Informasjon om bedriften som har gjennomført vurderingen
+                Informasjon om bedriften og total digital modenhet
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {/* Company Details Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Navn</p>
@@ -593,9 +644,7 @@ export default function ResultsPage() {
                 <div>
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Størrelse</p>
                   <p className="text-base font-medium text-gray-900">
-                    {hasCompanySize
-                      ? displayCompanySize
-                      : 'Ikke oppgitt'}
+                    {hasCompanySize ? displayCompanySize : 'Ikke oppgitt'}
                   </p>
                 </div>
                 <div>
@@ -623,77 +672,122 @@ export default function ResultsPage() {
                   )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-          {/* Survey ID Display - Always Visible */}
-          {surveyId && (
-            <Alert className="border-primary/20 bg-primary/5">
-              <Star className="h-4 w-4" />
-              <AlertDescription>
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <strong>RapportID: </strong>
-                    <code className="bg-white px-2 py-1 rounded text-sm font-mono">{surveyId}</code>
-                    <span className="text-sm text-muted-foreground ml-2">
-                      <i>Du kan kopiere denne for å hente opp rapporten igjen senere.</i>
-                    </span>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={copySurveyId}>
-                    <Copy className="w-3 h-3 mr-1" />
-                    Kopiér
-                  </Button>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Har du flere vurderinger?{' '}
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="h-auto p-0 text-primary underline"
-                    onClick={() => router.push('/access')}
-                  >
-                    Logg inn for å se alle dine rapporter
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
 
-          {/* Immediate Value - Basic Results (Always Visible) */}
-          <div className="grid grid-cols-1 gap-6">
-            <Card className="border-2 border-primary/20 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+              {/* Divider */}
+              <div className="border-t border-gray-200"></div>
+
+              {/* Score Section - 2 Column Layout */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
                   <TrendingUp className="w-5 h-5 text-primary" />
-                  Total Poengsum
-                  <HelpTooltip 
+                  <h3 className="text-lg font-semibold">Total Poengsum</h3>
+                  <HelpTooltip
                     title="Slik tolker du din totale poengsum"
                     content="Den totale poengsummen representerer din samlede digitale modenhet på en skala fra 0 til 100. Den beregnes ved å veie og aggregere poengsummene fra hver av de 6 dimensjonene basert på deres betydning for helheten."
                     variant="info"
                     size="sm"
                   />
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4 text-center">
-                  <div className="text-5xl font-bold text-primary">
-                    {overallPercentage}/100
-                  </div>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-lg px-4 py-2 ${
-                      (classification?.level || 0) >= 1 ? 'border-green-500 text-green-700 bg-green-50' :
-                      (classification?.level || 0) >= 3 ? 'border-blue-500 text-blue-700 bg-blue-50' :
-                      (classification?.level || 0) >= 2 ? 'border-amber-500 text-amber-700 bg-amber-50' :
-                      'border-red-500 text-red-700 bg-red-50'
-                    }`}
-                  >
-                    {classification ? t(classification.labelKey) : 'Unknown'}
-                  </Badge>
-                  <Progress value={overallPercentage} className="w-full h-8" />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+
+                {/* 2-Column Grid: Score (left) + Comparisons (right) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left Column - Main Score Display */}
+                  <div className="space-y-4 text-center flex flex-col justify-center">
+                    <div className="text-5xl font-bold text-primary">
+                      {overallPercentage}/100
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-lg px-4 py-2 ${
+                        (classification?.level || 0) >= 1 ? 'border-green-500 text-green-700 bg-green-50' :
+                        (classification?.level || 0) >= 3 ? 'border-blue-500 text-blue-700 bg-blue-50' :
+                        (classification?.level || 0) >= 2 ? 'border-amber-500 text-amber-700 bg-amber-50' :
+                        'border-red-500 text-red-700 bg-red-50'
+                      }`}
+                    >
+                      {classification ? t(classification.labelKey) : 'Unknown'}
+                    </Badge>
+                    <Progress value={overallPercentage} className="w-full h-8" />
+                  </div>
+
+                  {/* Right Column - Comparison Metrics Stacked */}
+                  <div className="space-y-3">
+                    {/* Sector Comparison */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-xs uppercase tracking-wide text-blue-700 font-semibold mb-2">
+                        vs. Bransje
+                      </p>
+                      <div className="flex items-baseline gap-2">
+                        {benchmarkAverages.sector ? (
+                          <>
+                            <span className="text-3xl font-bold text-blue-900">
+                              {benchmarkAverages.sector}
+                            </span>
+                            <span className="text-sm text-blue-600">/100</span>
+                          </>
+                        ) : (
+                          <span className="text-xl font-medium text-blue-700">
+                            {hasSector ? 'Beregner...' : 'N/A'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-blue-600 mt-1">
+                        {hasSector ? `Snitt for ${displaySector}` : 'Oppgi sektor for sammenligning'}
+                      </p>
+                    </div>
+
+                    {/* Company Size Comparison */}
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                      <p className="text-xs uppercase tracking-wide text-purple-700 font-semibold mb-2">
+                        vs. Størrelse
+                      </p>
+                      <div className="flex items-baseline gap-2">
+                        {benchmarkAverages.companySize ? (
+                          <>
+                            <span className="text-3xl font-bold text-purple-900">
+                              {benchmarkAverages.companySize}
+                            </span>
+                            <span className="text-sm text-purple-600">/100</span>
+                          </>
+                        ) : (
+                          <span className="text-xl font-medium text-purple-700">
+                            {hasCompanySize ? 'Beregner...' : 'N/A'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-purple-600 mt-1">
+                        {hasCompanySize ? `Snitt for ${displayCompanySize}` : 'Oppgi størrelse for sammenligning'}
+                      </p>
+                    </div>
+
+                    {/* County Comparison */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-xs uppercase tracking-wide text-green-700 font-semibold mb-2">
+                        vs. Fylke
+                      </p>
+                      <div className="flex items-baseline gap-2">
+                        {benchmarkAverages.county ? (
+                          <>
+                            <span className="text-3xl font-bold text-green-900">
+                              {benchmarkAverages.county}
+                            </span>
+                            <span className="text-sm text-green-600">/100</span>
+                          </>
+                        ) : (
+                          <span className="text-xl font-medium text-green-700">
+                            {resolvedCountyName ? 'Beregner...' : 'N/A'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-green-600 mt-1">
+                        {resolvedCountyName ? `Snitt for ${resolvedCountyName}` : 'Oppgi fylke for sammenligning'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Preview of dimensions - only show when locked */}
           {!hasExpandedAccess && (
@@ -805,12 +899,6 @@ export default function ResultsPage() {
               </CardContent>
             </Card>
           )}
-
-          {/* Maturity Level Explanation */}
-          <MaturityLevelExplanation
-            level={classification?.level || 0}
-            className="shadow-lg"
-          />
 
           {/* Value Gate - Unlock Expanded Results */}
           {!hasExpandedAccess && (
@@ -1066,26 +1154,16 @@ export default function ResultsPage() {
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 justify-between">
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => router.push('/assessment')}>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Assessment
-                </Button>
-                <Button onClick={() => router.push('/')} variant="outline">
-                  New Assessment
-                </Button>
-                <Button onClick={() => setShowExtendedModal(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  View Complete Analysis
-                </Button>
+                {/* Show "Back to My Surveys" if user came from session auth */}
+                {retrievalToken && (
+                  <Button variant="outline" onClick={() => router.push('/access')}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Mine Vurderinger
+                  </Button>
+                )}
               </div>
             
             <div className="flex gap-2">
-              {surveyId && (
-                <Button onClick={() => router.push(`/retrieve?id=${surveyId}`)} variant="outline">
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Share Results
-                </Button>
-              )}
               
               {hasExpandedAccess && pdfSurveyData ? (
                 <div className="flex items-center gap-2">
@@ -1116,19 +1194,44 @@ export default function ResultsPage() {
           {/* Footer */}
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="pt-6">
-              <div className="text-center space-y-3">
-                <p className="text-sm text-blue-800">
-                  <strong>Based on EU/JRC Digital Maturity Assessment Framework</strong>
-                </p>
-                <p className="text-xs text-blue-700">
-                  This assessment provides insights into your organization&apos;s digital maturity. 
-                  Results should be used as a starting point for digital transformation planning.
-                </p>
-                {surveyId && (
-                  <p className="text-xs text-blue-600">
-                    Assessment ID: <code className="bg-white px-2 py-1 rounded">{surveyId}</code> 
-                    • Saved automatically to cloud storage
+              <div className="space-y-4">
+                <div className="text-center space-y-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Based on EU/JRC Digital Maturity Assessment Framework</strong>
                   </p>
+                  <p className="text-xs text-blue-700">
+                    This assessment provides insights into your organization&apos;s digital maturity.
+                    Results should be used as a starting point for digital transformation planning.
+                  </p>
+                </div>
+
+                {/* Survey ID in Footer */}
+                {surveyId && (
+                  <div className="border-t border-blue-200 pt-4 mt-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-blue-700">RapportID:</span>
+                        <code className="bg-white px-2 py-0.5 rounded text-xs font-mono text-blue-900">
+                          {surveyId}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={copySurveyId}
+                          className="h-6 px-2 text-blue-700 hover:text-blue-900"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <span className="text-xs text-blue-600">•</span>
+                      <button
+                        className="text-xs text-blue-700 hover:underline"
+                        onClick={() => router.push('/access')}
+                      >
+                        Se alle dine rapporter
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             </CardContent>

@@ -10,7 +10,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { hashEmail } from './email-survey-mapping';
 
 const MAGIC_LINKS_COLLECTION = 'magic_links';
-const TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours (reusable)
 const SALT = process.env.DMSA_TOKEN_SALT || 'default-magic-link-salt';
 
 interface MagicLinkData {
@@ -19,8 +19,10 @@ interface MagicLinkData {
   emailHash: string;
   createdAt: Timestamp;
   expiresAt: Timestamp;
-  used: boolean;
+  used: boolean; // Kept for backward compatibility, but no longer enforced
   usedAt?: Timestamp;
+  lastUsedAt?: Timestamp; // Track most recent use
+  useCount: number; // Track how many times used
 }
 
 /**
@@ -63,6 +65,7 @@ export async function createMagicLink(email: string): Promise<{
     createdAt: now,
     expiresAt: Timestamp.fromDate(expiry),
     used: false,
+    useCount: 0,
   };
 
   try {
@@ -87,7 +90,7 @@ export async function createMagicLink(email: string): Promise<{
 
 /**
  * Verify a magic link token and return the associated email hash
- * Marks the token as used to prevent reuse
+ * Tokens are reusable for 24 hours - we just track usage, not enforce one-time use
  */
 export async function verifyMagicLinkToken(
   token: string,
@@ -117,21 +120,18 @@ export async function verifyMagicLinkToken(
         return { valid: false, reason: 'Email mismatch' };
       }
 
-      // Check if already used
-      if (data.used) {
-        return { valid: false, reason: 'Token already used' };
-      }
-
       // Check if expired
       const now = Timestamp.now();
       if (data.expiresAt.toMillis() < now.toMillis()) {
         return { valid: false, reason: 'Token expired' };
       }
 
-      // Mark as used
+      // Token is valid and reusable - just update usage tracking
       transaction.update(docRef, {
-        used: true,
-        usedAt: now,
+        used: true, // Keep for backward compatibility
+        usedAt: data.usedAt || now, // First use timestamp
+        lastUsedAt: now, // Most recent use
+        useCount: (data.useCount || 0) + 1,
       });
 
       return { valid: true, emailHash: data.emailHash };
