@@ -28,7 +28,7 @@ npm run dev
 
 The Digital Maturity Assessment tool provides a standardized evaluation of digital transformation readiness across **6 key dimensions** through an **11-question comprehensive questionnaire**. Based on the official EU/JRC Digital Maturity Assessment framework.
 
-**Live Application**: [dmsa-5om77nc32-hassanzouhars-projects.vercel.app](https://dmsa-5om77nc32-hassanzouhars-projects.vercel.app)
+**Live Application**: [digital-modenhet.rastla.us](digital-modenhet.rastla.us)
 
 ## Current Features
 
