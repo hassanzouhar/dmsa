@@ -3,9 +3,9 @@
 > **A comprehensive self-assessment platform for SME digital transformation readiness**
 
 [![Production](https://img.shields.io/badge/Status-Production%20Ready-green)](https://dmsa-5om77nc32-hassanzouhars-projects.vercel.app)
-[![Framework](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://typescriptlang.org)
-[![Firebase](https://img.shields.io/badge/Firebase-Storage%20%2B%20Firestore-orange)](https://firebase.google.com)
+ [![Framework](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org)
+ [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://typescriptlang.org)
+ [![Firebase](https://img.shields.io/badge/Firebase-Storage%20%2B%20Firestore-orange)](https://firebase.google.com)
 
 ## 🚀 Quick Start
 
