@@ -23,46 +23,51 @@ interface DimensionGaugeProps {
 
 // Performance level configurations
 const getPerformanceLevel = (score: number) => {
-  if (score >= 85) return {
-    level: 'excellent',
-    label: 'Excellent',
-    color: 'bg-green-500',
-    textColor: 'text-green-700',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200',
-    icon: CheckCircle2,
-    interpretation: 'Outstanding performance in this area. You\'re setting the standard for digital maturity.'
-  };
-  if (score >= 70) return {
-    level: 'good',
-    label: 'Good',
-    color: 'bg-blue-500',
-    textColor: 'text-blue-700',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    icon: TrendingUp,
-    interpretation: 'Strong performance with room for strategic improvements to reach excellence.'
-  };
-  if (score >= 50) return {
-    level: 'developing',
-    label: 'Developing',
-    color: 'bg-amber-500',
-    textColor: 'text-amber-700',
-    bgColor: 'bg-amber-50',
-    borderColor: 'border-amber-200',
-    icon: Target,
-    interpretation: 'Moderate progress with significant opportunities for improvement and growth.'
-  };
-  return {
-    level: 'basic',
-    label: 'Basic',
-    color: 'bg-red-500',
-    textColor: 'text-red-700',
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200',
-    icon: AlertTriangle,
-    interpretation: 'Foundational level requiring immediate attention and strategic investment.'
-  };
+  if (score >= 85) {
+    return {
+      level: 'excellent',
+      label: 'Fremragende',
+      color: 'bg-green-500',
+      textColor: 'text-green-700',
+      bgColor: 'bg-green-50',
+      borderColor: 'border-green-200',
+      icon: CheckCircle2,
+      interpretation: 'Enestående ytelse på dette området. Du setter standarden for digital modenhet.'
+    };
+  } else if (score >= 70) {
+    return {
+      level: 'good',
+      label: 'Good',
+      color: 'bg-blue-500',
+      textColor: 'text-blue-700',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+      icon: TrendingUp,
+      interpretation: 'Strong performance with room for strategic improvements to reach excellence.'
+    };
+  } else if (score >= 50) {
+    return {
+      level: 'developing',
+      label: 'Developing',
+      color: 'bg-amber-500',
+      textColor: 'text-amber-700',
+      bgColor: 'bg-amber-50',
+      borderColor: 'border-amber-200',
+      icon: Target,
+      interpretation: 'Moderate progress with significant opportunities for improvement and growth.'
+    };
+  } else {
+    return {
+      level: 'basic',
+      label: 'Basic',
+      color: 'bg-red-500',
+      textColor: 'text-red-700',
+      bgColor: 'bg-red-50',
+      borderColor: 'border-red-200',
+      icon: AlertTriangle,
+      interpretation: 'Foundational level requiring immediate attention and strategic investment.'
+    };
+  }
 };
 
 // Get specific recommendations based on dimension and score
@@ -70,104 +75,104 @@ const getDimensionRecommendations = (dimensionId: string, score: number): string
   const recommendations: Record<string, Record<string, string[]>> = {
     digitalStrategy: {
       low: [
-        'Develop a comprehensive digital transformation roadmap',
-        'Establish digital governance and leadership structures',
-        'Align digital initiatives with business objectives'
+        'Utvikle en omfattende veikart for digital transformasjon',
+        'Etabler digitale styrings- og lederstrukturer',
+        'Sørg for at digitale initiativer er i tråd med forretningsmålene'
       ],
       medium: [
-        'Integrate digital metrics into performance management',
-        'Expand digital capabilities across business units',
-        'Enhance stakeholder engagement in digital initiatives'
+        'Integrer digitale måleparametere i resultatstyringen',
+        'Utvid digitale kapabiliteter på tvers av forretningsenheter',
+        'Styrk interessentengasjementet i digitale initiativer'
       ],
       high: [
-        'Lead industry digital transformation initiatives',
-        'Share best practices with peers and partners',
-        'Explore emerging technologies for competitive advantage'
+        'Led bransjens digitale transformasjonsinitiativer',
+        'Del beste praksis med kolleger og partnere',
+        'Utforsk nye teknologier for konkurransefortrinn'
       ]
     },
     digitalReadiness: {
       low: [
-        'Assess current digital infrastructure and capabilities',
-        'Develop digital skills training programs',
-        'Establish change management processes'
+        'Vurder dagens digitale infrastruktur og kapabiliteter',
+        'Utvikle opplæringsprogrammer for digitale ferdigheter',
+        'Etabler endringsledelsesprosesser'
       ],
       medium: [
-        'Enhance digital collaboration tools and processes',
-        'Implement advanced analytics capabilities',
-        'Strengthen cybersecurity measures'
+        'Forbedre digitale samarbeidsverktøy og prosesser',
+        'Implementer avanserte analysekapabiliteter',
+        'Styrk cybersikkerhetstiltak'
       ],
       high: [
-        'Optimize digital processes for maximum efficiency',
-        'Implement predictive and prescriptive analytics',
-        'Drive innovation through emerging technologies'
+        'Optimaliser digitale prosesser for maksimal effektivitet',
+        'Implementer prediktiv og preskriptiv analyse',
+        'Frem innovasjon gjennom nye teknologier'
       ]
     },
     humanCentric: {
       low: [
-        'Prioritize employee digital literacy programs',
-        'Implement user-friendly digital interfaces',
-        'Focus on inclusive digital design principles'
+        'Prioriter opplæring i digital kompetanse for ansatte',
+        'Implementer brukervennlige digitale grensesnitt',
+        'Fokuser på inkluderende prinsipper for digital design'
       ],
       medium: [
-        'Enhance digital employee experience',
-        'Implement personalized digital services',
-        'Strengthen digital accessibility measures'
+        'Forbedre den digitale medarbeideropplevelsen',
+        'Implementer personlige digitale tjenester',
+        'Styrk tiltak for digital tilgjengelighet'
       ],
       high: [
-        'Pioneer human-centered AI implementations',
-        'Lead industry standards for digital inclusion',
-        'Create seamless omnichannel experiences'
+        'Vær pioner innen menneskesentrert AI-implementering',
+        'Led bransjestandarder for digital inkludering',
+        'Skap sømløse opplevelser på tvers av kanaler'
       ]
     },
     dataManagement: {
       low: [
-        'Establish data governance framework',
-        'Implement data quality management processes',
-        'Develop data literacy across organization'
+        'Etabler rammeverk for datastyring',
+        'Implementer prosesser for datakvalitetsstyring',
+        'Utvikle datakompetanse i hele organisasjonen'
       ],
       medium: [
-        'Enhance data integration and interoperability',
-        'Implement advanced data analytics capabilities',
-        'Strengthen data privacy and security measures'
+        'Forbedre dataintegrasjon og interoperabilitet',
+        'Implementer avanserte analysekapabiliteter',
+        'Styrk personvern og sikkerhet rundt data'
       ],
       high: [
-        'Leverage real-time data for decision making',
-        'Implement AI-driven data insights',
-        'Establish data monetization strategies'
+        'Utnytt sanntidsdata for beslutningsstøtte',
+        'Implementer AI-drevne datainnsikter',
+        'Etabler strategier for datamonetisering'
       ]
     },
     automation: {
       low: [
-        'Identify automation opportunities in key processes',
-        'Develop AI readiness and capability assessment',
-        'Establish ethical AI governance framework'
+        'Identifiser automatiseringsmuligheter i nøkkelprosesser',
+        'Gjennomfør vurdering av AI-beredskap og kapabilitet',
+        'Etabler etisk rammeverk for AI-styring'
       ],
       medium: [
-        'Scale automation across business processes',
-        'Implement machine learning for decision support',
-        'Enhance human-AI collaboration models'
+        'Skaler automatisering på tvers av forretningsprosesser',
+        'Implementer maskinlæring for beslutningsstøtte',
+        'Forbedre modeller for samarbeid mellom mennesker og AI'
       ],
       high: [
-        'Deploy advanced AI for strategic advantage',
-        'Lead responsible AI implementation practices',
-        'Create AI-powered innovation ecosystems'
+        'Ta i bruk avansert AI for strategisk fordel',
+        'Led ansvarlig implementering av AI',
+        'Skap innovasjonsøkosystemer drevet av AI'
       ]
     },
     greenDigitalization: {
       low: [
-        'Assess environmental impact of digital operations',
-        'Implement energy-efficient digital technologies',
-        'Develop sustainability metrics and reporting'
+        'Vurder miljøpåvirkningen av digitale operasjoner',
+        'Implementer energieffektive digitale teknologier',
+        'Utvikle bærekraftige måleparametere og rapportering'
       ],
       medium: [
-        'Optimize digital infrastructure for sustainability',
-        'Implement circular economy principles',
-        'Enhance sustainable supply chain practices'
+        'Optimaliser digital infrastruktur for bærekraft',
+        'Implementer prinsipper for sirkulær økonomi',
+        'Forbedre bærekraft i leverandørkjeden'
       ],
       high: [
-        'Lead industry sustainability initiatives',
-        'Implement carbon-neutral digital operations',
-        'Drive ecosystem-wide sustainability transformation'
+        'Led bransjeinitiativ for bærekraft',
+        'Implementer karbonnøytrale digitale operasjoner',
+        'Frem bærekraftig transformasjon i hele økosystemet'
       ]
     }
   };

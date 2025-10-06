@@ -64,13 +64,12 @@ const ExtendedResultsModal: React.FC<ExtendedResultsModalProps> = ({
   // Comprehensive dimension name mapping for both legacy and new API formats
   const dimensionNames: Record<string, string> = {
     // Survey dimension IDs (from questions.no.ts)
-    digitalStrategy: 'Digital Business Strategy',
-    digitalReadiness: 'Digital Readiness',
-    humanCentric: 'Human-Centric Digitalization',
-    dataManagement: 'Data Management',
-    automation: 'Automation and AI',
-    greenDigitalization: 'Green Digitalization',
-    green_digitalization: 'Green Digitalization'
+    digitalStrategy: 'Digital Forretningsstrategi',
+    digitalReadiness: 'Digital Beredskap',
+    humanCentric: 'Menneskesentrisk Digitalisering',
+    dataManagement: 'Datastyring og Tilkobling',
+    automation: 'Automasjon og KI',
+    greenDigitalization: 'Bærekraftig Digitalisering'
   };
   
   // Helper function to safely get dimension name

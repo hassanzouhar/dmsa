@@ -31,33 +31,33 @@ const dimensionConfig: Record<string, {
   icon?: string;
 }> = {
   digitalStrategy: {
-    displayName: 'Digital Business Strategy',
-    shortDescription: 'Strategic alignment of digital initiatives with business objectives',
+    displayName: 'Digital forretningsstrategi',
+    shortDescription: 'Strategisk tilpasning av digitale initiativer med forretningsmål',
     icon: '🎯'
   },
   digitalReadiness: {
-    displayName: 'Digital Readiness',
-    shortDescription: 'Infrastructure, capabilities, and change readiness for digital transformation',
+    displayName: 'Digital beredskap',
+    shortDescription: 'Infrastruktur, kapasiteter og endringsberedskap for digital transformasjon',
     icon: '⚡'
   },
   humanCentric: {
-    displayName: 'Human-Centric Digitalization',
-    shortDescription: 'Employee experience, digital skills, and inclusive digital design',
+    displayName: 'Menneskesentrisk digitalisering',
+    shortDescription: 'Ansattopplevelse, digitale ferdigheter og inkluderende digital design',
     icon: '👥'
   },
   dataManagement: {
-    displayName: 'Data Management & Connectivity',
-    shortDescription: 'Data governance, integration, quality, and analytics capabilities',
+    displayName: 'Datastyring og tilkobling',
+    shortDescription: 'Datastyring, integrasjon, kvalitet og analysekapasiteter',
     icon: '📊'
   },
   automation: {
-    displayName: 'Automation & AI',
-    shortDescription: 'Process automation, artificial intelligence, and intelligent systems',
+    displayName: 'Automatisering og KI',
+    shortDescription: 'Prosessautomatisering, kunstig intelligens og intelligente systemer',
     icon: '🤖'
   },
   greenDigitalization: {
-    displayName: 'Green Digitalization',
-    shortDescription: 'Sustainable digital practices and environmental responsibility',
+    displayName: 'Grønn digitalisering',
+    shortDescription: 'Bærekraftige digitale praksiser og miljøansvar',
     icon: '🌱'
   }
 };
