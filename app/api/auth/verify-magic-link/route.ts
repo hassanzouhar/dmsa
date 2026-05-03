@@ -9,6 +9,7 @@ import { verifyMagicLinkToken } from '@/lib/magic-link';
 import { getSurveysByEmail } from '@/lib/email-survey-mapping';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { COLLECTIONS } from '@/types/firestore-schema';
+import { signSessionToken } from '@/lib/session-token';
 import { z } from 'zod';
 
 const verifySchema = z.object({
@@ -110,15 +111,12 @@ export async function POST(request: NextRequest) {
       (s) => s !== null
     );
 
-    // Generate a session token for subsequent authenticated requests
-    // In production, store this in a secure session store (e.g., Redis)
-    const sessionToken = Buffer.from(
-      JSON.stringify({
-        email: verification.emailHash,
-        surveyIds,
-        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-      })
-    ).toString('base64');
+    // Generate an HMAC-signed session token for subsequent authenticated requests.
+    const sessionToken = signSessionToken({
+      email: verification.emailHash ?? '',
+      surveyIds,
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
 
     return NextResponse.json({
       success: true,

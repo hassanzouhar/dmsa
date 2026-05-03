@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { COLLECTIONS, DOCUMENT_IDS } from '@/types/firestore-schema';
+import { verifySessionToken, type SessionPayload } from '@/lib/session-token';
 
 interface RouteParams {
   params: Promise<{
@@ -38,11 +39,9 @@ export async function GET(request: NextRequest, props: RouteParams) {
 
     const sessionToken = authHeader.substring(7);
 
-    // Verify session token
-    let session: { email: string; surveyIds: string[]; expiresAt: number };
-    try {
-      session = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
-    } catch {
+    // Verify HMAC-signed session token. Forged or tampered tokens return null.
+    const session: SessionPayload | null = verifySessionToken(sessionToken);
+    if (!session) {
       return NextResponse.json(
         {
           success: false,
