@@ -8,10 +8,15 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: false,
     dirs: ['app', 'components', 'lib', 'types', 'data'], // Only lint actual app directories
   },
-  // Exclude design upgrade folder from compilation
+  // Exclude parallel-workspace folders from compilation
   webpack: (config) => {
     config.watchOptions = {
-      ignored: ['**/design upgrade/**', '**/node_modules/**'],
+      ignored: [
+        '**/design upgrade/**',
+        '**/no_bus/**',
+        '**/Digital Maturity Assessment Tool/**',
+        '**/node_modules/**',
+      ],
     };
     return config;
   },
