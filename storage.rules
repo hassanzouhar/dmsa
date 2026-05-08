@@ -11,18 +11,15 @@ service firebase.storage {
       allow write: if false; // Only admin/server can upload public assets
     }
     
-    // Development test files (if needed)
+    // Development test files: Admin SDK only. No public access in production.
     match /test/{allPaths=**} {
-      // Only allow in non-production environments
-      // In production, this should be commented out
-      allow read, write: if true; 
+      allow read, write: if false;
     }
-    
-    // Legacy surveys folder - read-only for migration period
-    // TODO: Remove after migration is complete
+
+    // Legacy surveys folder: Admin SDK only. Public read removed; the
+    // /api/dma/results endpoint enforces token-based access server-side.
     match /surveys/{surveyId} {
-      allow read: if true; // Temporary for migration
-      allow write: if false; // No new survey writes to Storage
+      allow read, write: if false;
     }
     
     // Archived data (admin access only)
