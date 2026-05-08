@@ -23,5 +23,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "design upgrade"]
+  "exclude": ["node_modules", "design upgrade", "no_bus", "Digital Maturity Assessment Tool"]
 }
