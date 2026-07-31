@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CompanyDetails, DimensionScore } from '@/types/firestore-schema';
+import type { CompanyDetails, DimensionScore } from '@/types/survey';
 import { 
   generateBenchmarkComparison, 
   getSectorDisplayName, 
@@ -18,9 +18,27 @@ interface BenchmarkSectionProps {
   overallScore: number;
 }
 
+const EmptyBenchmarkState: React.FC = () => (
+  <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+    <h2 className="text-xl font-semibold text-gray-900 mb-2">Benchmark Comparison</h2>
+    <p className="text-gray-600">
+      Vi har ikke nok resultatdata til å vise en sammenligning ennå. Fullfør vurderingen for å se
+      hvordan du ligger an mot andre i din bransje.
+    </p>
+  </div>
+);
+
 const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ company, dimensions, overallScore }) => {
   const [showDimensionDetails, setShowDimensionDetails] = useState(false);
-  
+
+  // Callers pass `resultsData?.dimensions || {}`, so an empty map is a real case.
+  // Bail before generateBenchmarkComparison() — it has nothing to reduce over.
+  const hasDimensions = Object.keys(dimensions).length > 0;
+
+  if (!hasDimensions) {
+    return <EmptyBenchmarkState />;
+  }
+
   // Create surveyData-like object for compatibility with existing benchmark service
   const surveyDataCompat = {
     id: 'temp',
@@ -47,6 +65,7 @@ const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ company, dimensions
   const benchmarkComparison = generateBenchmarkComparison(surveyDataCompat);
   const { overall, dimensions: dimensionComparisons, benchmarkData, insights, summary } = benchmarkComparison;
   const isFallbackData = benchmarkData.dataSource && benchmarkData.dataSource !== 'exact';
+  const dimensionCount = Object.keys(dimensionComparisons).length;
   const hasSufficientData = benchmarkData.hasSufficientData ?? (benchmarkData.sampleSize ?? 0) >= 15;
 
   const dataContextMessage = (() => {
@@ -81,7 +100,12 @@ const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ company, dimensions
           <HelpTooltip content="See how your digital maturity scores compare against similar organizations in your sector and size category." />
         </h2>
       <p className="text-gray-600">
-        Compared against {getSectorDisplayName(benchmarkData.sector)} sector, {getCompanySizeDisplayName(benchmarkData.companySize)} companies
+        {/* On a fallback the matched dataset's companySize is NOT the user's —
+            getBenchmarkData() takes the first key starting with the sector — so
+            don't assert a size we didn't actually compare against. */}
+        {isFallbackData
+          ? `Referansetall for ${getSectorDisplayName(benchmarkData.sector)} sector (ikke spesifikt for din bedriftsstørrelse)`
+          : `Compared against ${getSectorDisplayName(benchmarkData.sector)} sector, ${getCompanySizeDisplayName(benchmarkData.companySize)} companies`}
       </p>
       <p className="text-sm text-gray-500">
         {benchmarkData.sampleSize ? `Based on ${benchmarkData.sampleSize.toLocaleString('no-NO')} organizations` : 'Datagrunnlag samles inn'} • Updated {new Date(benchmarkData.lastUpdated).toLocaleDateString()}
@@ -100,15 +124,17 @@ const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ company, dimensions
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-blue-700">Above Average:</span>
-              <span className="font-semibold text-blue-900">{summary.aboveAverageCount}/6 dimensions</span>
+              <span className="font-semibold text-blue-900">{summary.aboveAverageCount}/{dimensionCount} dimensions</span>
             </div>
             <div className="flex justify-between">
               <span className="text-blue-700">Top Quartile:</span>
-              <span className="font-semibold text-blue-900">{summary.topQuartileCount}/6 dimensions</span>
+              <span className="font-semibold text-blue-900">{summary.topQuartileCount}/{dimensionCount} dimensions</span>
             </div>
           </div>
         </div>
 
+        {insights && (
+        <>
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-green-900 mb-2">Strongest Area</h3>
           <div className="space-y-1">
@@ -140,16 +166,20 @@ const BenchmarkSection: React.FC<BenchmarkSectionProps> = ({ company, dimensions
             )}
           </div>
         </div>
+        </>
+        )}
       </div>
 
       {/* Overall Performance Chart */}
-      <div>
-        <BenchmarkChart 
-          title="Overall Digital Maturity" 
-          comparison={overall}
-          showDetails={true}
-        />
-      </div>
+      {overall && (
+        <div>
+          <BenchmarkChart
+            title="Overall Digital Maturity"
+            comparison={overall}
+            showDetails={true}
+          />
+        </div>
+      )}
 
       {/* Dimension Breakdown Toggle */}
       <div className="border-t border-gray-200 pt-6">

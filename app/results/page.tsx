@@ -28,7 +28,7 @@ import { useTranslation } from 'react-i18next';
 import { dmaNo_v1 } from '@/data/questions.no';
 // New API imports
 import { getSurveyResults, upgradeSurveyToT1, updateAnonymousFlag } from '@/lib/survey-api';
-import { PublicResultsDocument, SurveyDocument } from '@/types/firestore-schema';
+import type { Scores as PublicResultsDocument, SurveyDocument } from '@/types/survey';
 import { SurveySubmission } from '@/types/assessment';
 import { toast } from 'sonner';
 import { TrackedPDFDownloadButton } from '@/components/TrackedPDFDownloadButton';

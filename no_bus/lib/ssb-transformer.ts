@@ -7,19 +7,28 @@
 
 import type { DimensionKey } from '../src/benchmarks/types';
 import { tableMapping, type DimensionConfig } from '../src/mapping/dimensionMapping';
-import { mapSectorToNaceCodes, mapSizeToSSBCodes } from './ssb-mapping';
+import { mapSectorToNaceCodes, mapSizeToSSBCodes, regionCodeVariants } from './ssb-mapping';
 
 // Re-eksporter for bakoverkompatibilitet (tidligere kallesteder importerte
 // `tableMapping` fra denne filen). Canonical bor nå i dimensionMapping.ts.
 export { tableMapping };
 export type { DimensionConfig };
 
+/**
+ * Spredningen mellom SSB-indikatorene som mater én dimensjon.
+ *
+ * NB: dette er IKKE en fordeling over virksomheter. Hver dimensjon har 1–3
+ * SSB-tabeller, og feltene beskriver spredningen mellom de tabellenes skårer.
+ * De het tidligere p25/p50/p75, noe som fikk «indikator nr. 3» til å se ut som
+ * «topp-kvartilen av foretak».
+ */
 interface DimensionScore {
   average: number;
-  p25: number;
-  p50: number;
-  p75: number;
-  sampleSize: number;
+  indicatorMin: number;
+  indicatorMedian: number;
+  indicatorMax: number;
+  /** Antall SSB-tabeller som faktisk bidro med en verdi (0–3). */
+  indicatorCount: number;
   score?: number;
 }
 
@@ -29,17 +38,15 @@ interface BenchmarkData {
   dimensions: Record<string, DimensionScore>;
   overall: {
     average: number;
-    top25: number;
-    sampleSize: number;
   };
-  intelligence?: IntelligenceData;
   dataSource: 'ssb' | 'ssb-inferred' | 'fallback';
   hasSufficientData: boolean;
   lastUpdated: string;
   ssbTables: string[];
   metadata?: {
     generatedAt: string;
-    lowSampleDimensions: string[];
+    /** Dimensjoner der for få SSB-indikatorer ga en verdi. */
+    lowCoverageDimensions: string[];
     sector?: string;
     companySize?: string;
     region?: string;
@@ -47,48 +54,10 @@ interface BenchmarkData {
   };
 }
 
-interface IntelligenceData {
-  successPatterns: {
-    cloudServices?: SuccessPattern;
-    aiApplications?: SuccessPattern;
-    printing3D?: SuccessPattern;
-  };
-  commonChallenges: {
-    cybersecurity?: ChallengeData;
-    aiAdoption?: ChallengeData;
-    cloudAdoption?: ChallengeData;
-    ecommerce?: ChallengeData;
-  };
-  recommendations: Recommendation[];
-}
-
-interface SuccessPattern {
-  adoptionRate: number;
-  topBenefits?: Array<{ benefit: string; percentage: number; rank: number }>;
-  topUseCases?: Array<{ purpose: string; percentage: number; dimension: string }>;
-  topApplications?: Array<{ purpose: string; percentage: number }>;
-  roi?: 'high' | 'medium' | 'low';
-  maturityLevel?: 'emerging' | 'growing' | 'established' | 'advanced';
-  relevanceScore?: number;
-}
-
-interface ChallengeData {
-  incidentRate?: number;
-  nonAdopterRate?: number;
-  topBarriers?: Array<{
-    barrier: string;
-    percentage: number;
-    addressable?: boolean;
-    severity?: 'high' | 'medium' | 'low';
-  }>;
-  topIncidents?: Array<{
-    type: string;
-    percentage: number;
-    severity: 'high' | 'medium' | 'low';
-  }>;
-  preparednessGap?: number;
-  overcomePotential?: 'high' | 'medium' | 'low';
-}
+// Merk: `intelligence`-blokken (successPatterns/commonChallenges) er fjernet.
+// Den var i sin helhet hardkodede tall som ble skrevet til Firestore merket
+// `dataSource: 'ssb'`. Feltet er fortsatt valgfritt i skjemaet og kan fylles
+// igjen når tallene faktisk kan utledes fra SSB-tabellene.
 
 interface Recommendation {
   dimension: string;
@@ -144,22 +113,26 @@ export class SSBTransformer {
     companySize: string,
     region?: string
   ): DimensionScore {
+    const empty: DimensionScore = {
+      average: 0,
+      indicatorMin: 0,
+      indicatorMedian: 0,
+      indicatorMax: 0,
+      indicatorCount: 0,
+      score: 0
+    };
+
     const config = tableMapping[dimensionId];
-    if (!config) {
-      return {
-        average: 0,
-        p25: 50,
-        p50: 50,
-        p75: 50,
-        sampleSize: 0,
-        score: 0
-      };
-    }
+    if (!config) return empty;
 
     const { tables: tableIds, weights } = config;
 
     const scores: number[] = [];
-    let totalSampleSize = 0;
+
+    // DMSA "small"/"medium" dekker to SSB-sysselsettingsbins hver. Begge hentes
+    // allerede fra SSB — her snittes de uvektet i stedet for at bare den første
+    // brukes (som gjorde "small" til bare 10–19 og "medium" til bare 50–99).
+    const sizeCodes = mapSizeToSSBCodes(companySize);
 
     for (const tableId of tableIds) {
       const tableData = ssbData[tableId];
@@ -168,19 +141,19 @@ export class SSBTransformer {
       try {
         const sectorCodes = this.resolveSectorCodes(sector, tableId);
         const tableValues: number[] = [];
-        let tableSample = 0;
 
         for (const sectorCode of sectorCodes) {
-          const extracted = this.extractDataFromJSONStat(
-            tableData,
-            sectorCode,
-            companySize,
-            region,
-            { tableId, dimensionId, sectorCode }
-          );
-          if (extracted) {
-            tableValues.push(extracted.value);
-            tableSample += extracted.sampleSize || 0;
+          for (const sizeCode of sizeCodes) {
+            const extracted = this.extractDataFromJSONStat(
+              tableData,
+              sectorCode,
+              sizeCode,
+              region,
+              { tableId, dimensionId, sectorCode }
+            );
+            if (extracted) {
+              tableValues.push(extracted.value);
+            }
           }
         }
 
@@ -189,36 +162,29 @@ export class SSBTransformer {
           const direction = weights?.[tableId] ?? 1;
           const adjustedValue = direction === -1 ? 100 - avgValue : avgValue;
           scores.push(this.percentageToScore(adjustedValue));
-          totalSampleSize += tableSample || tableValues.length * 50;
         }
       } catch (error) {
         console.warn(`⚠️  Failed to extract from table ${tableId}:`, error);
       }
     }
 
-    // Calculate percentiles from available indicators (table-level scores)
+    if (scores.length === 0) return empty;
+
+    // Spredning mellom indikatorene — ikke en fordeling over foretak.
     const clamp100 = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
-    let p25 = 50, p50 = 50, p75 = 50;
-    if (scores.length > 0) {
-      const sorted = [...scores].sort((a, b) => a - b);
-      const q = (arr: number[], q: number) => {
-        const pos = (arr.length - 1) * q;
-        const base = Math.floor(pos);
-        const rest = pos - base;
-        return arr[base] + (arr[base + 1] !== undefined ? rest * (arr[base + 1] - arr[base]) : 0);
-      };
-      p25 = clamp100(q(sorted, 0.25));
-      p50 = clamp100(q(sorted, 0.5));
-      p75 = clamp100(q(sorted, 0.75));
-    }
-    const average = scores.length > 0 ? clamp100(scores.reduce((s, v) => s + v, 0) / scores.length) : 0;
+    const sorted = [...scores].sort((a, b) => a - b);
+    const mid = (sorted.length - 1) / 2;
+    const median = sorted.length % 2 === 1
+      ? sorted[mid]
+      : (sorted[Math.floor(mid)] + sorted[Math.ceil(mid)]) / 2;
+    const average = clamp100(scores.reduce((s, v) => s + v, 0) / scores.length);
 
     return {
       average,
-      p25,
-      p50,
-      p75,
-      sampleSize: totalSampleSize || 0,
+      indicatorMin: clamp100(sorted[0]),
+      indicatorMedian: clamp100(median),
+      indicatorMax: clamp100(sorted[sorted.length - 1]),
+      indicatorCount: scores.length,
       score: average
     };
   }
@@ -239,10 +205,10 @@ export class SSBTransformer {
   private extractDataFromJSONStat(
     jsonStatData: any,
     resolvedSectorCode: string,
-    companySize: string,
+    ssbSizeCode: string,
     region?: string,
     context?: { tableId: string; dimensionId: string; sectorCode: string }
-  ): { value: number; sampleSize?: number } | null {
+  ): { value: number } | null {
     if (!jsonStatData?.value || !jsonStatData?.dimension || !jsonStatData?.id || !jsonStatData?.size) {
       return null;
     }
@@ -280,7 +246,9 @@ export class SSBTransformer {
                   `⚠️ Missing sector mapping for table ${context?.tableId ?? 'unknown'} (${context?.dimensionId ?? 'unknown'}) -> ${context?.sectorCode ?? 'unknown'} resolved as ${resolvedSectorCode}. Available: ${sectorKeys.join(', ')}`
                 );
               }
-              indices.push(0);
+              // Ikke fall tilbake til indeks 0 — det ville lest en HELT ANNEN
+              // sektors tall og lagret dem som denne sektorens benchmark.
+              return null;
             } else {
               indices.push(sectorIndex);
             }
@@ -292,18 +260,17 @@ export class SSBTransformer {
           if (sizeKeys.length === 1) {
             indices.push(0);
           } else {
-            // Map our size format to SSB format
-            const ssbSizeCode = this.mapSizeToSSBCode(companySize);
             const sizeIndex = dim.category.index[ssbSizeCode];
             if (sizeIndex === undefined) {
               const key = `${context?.tableId ?? 'unknown'}::${ssbSizeCode}`;
               if (!this.missingSizeMappings.has(key)) {
                 this.missingSizeMappings.add(key);
                 console.warn(
-                  `⚠️ Missing size mapping for table ${context?.tableId ?? 'unknown'} (${context?.dimensionId ?? 'unknown'}) -> ${companySize} mapped to ${ssbSizeCode}. Available: ${sizeKeys.join(', ')}`
+                  `⚠️ Missing size mapping for table ${context?.tableId ?? 'unknown'} (${context?.dimensionId ?? 'unknown'}) -> SSB-kode ${ssbSizeCode}. Available: ${sizeKeys.join(', ')}`
                 );
               }
-              indices.push(0);
+              // Samme grunn som for sektor: heller ingen verdi enn feil størrelse.
+              return null;
             } else {
               indices.push(sizeIndex);
             }
@@ -316,7 +283,8 @@ export class SSBTransformer {
             indices.push(0);
           } else {
             const idx = this.resolveRegionIndex(dim.category.index, region);
-            indices.push(idx !== undefined ? idx : 0);
+            if (idx === undefined) return null;
+            indices.push(idx);
           }
         }
         // For other dimensions (ContentsCode, Tid, etc), use first value
@@ -347,10 +315,8 @@ export class SSBTransformer {
         return null;
       }
 
-      return {
-        value: typeof value === 'number' ? value : parseFloat(value),
-        sampleSize: 100 // SSB doesn't provide sample sizes in responses
-      };
+      // SSB oppgir ikke utvalgsstørrelse i responsen — vi later ikke som noe annet.
+      return { value: typeof value === 'number' ? value : parseFloat(value) };
     } catch (error) {
       console.warn('Failed to extract data from JSON-stat2:', error);
       return null;
@@ -359,67 +325,10 @@ export class SSBTransformer {
 
   private resolveRegionIndex(indexObj: Record<string, number>, region?: string): number | undefined {
     if (!region) return undefined;
-    if (indexObj[region] !== undefined) return indexObj[region];
-    const noDash = region.replace(/^NO-/, '');
-    if (indexObj[noDash] !== undefined) return indexObj[noDash];
-    const noPrefix = region.startsWith('NO-') ? `NO${region.slice(3)}` : `NO${region}`;
-    if (indexObj[noPrefix] !== undefined) return indexObj[noPrefix];
+    for (const variant of regionCodeVariants(region)) {
+      if (indexObj[variant] !== undefined) return indexObj[variant];
+    }
     return undefined;
-  }
-
-  /**
-   * @deprecated Bruk `mapSizeToSSBCodes` (plural) fra `./ssb-mapping`.
-   *
-   * Brukes fortsatt internt i `extractDataFromJSONStat` der vi henter
-   * verdien for ÉN celle om gangen. Returnerer første SSB-kode for
-   * DMSA-størrelsen.
-   *
-   * TODO: extractDataFromJSONStat bør itereres over alle koder fra
-   * `mapSizeToSSBCodes(size)` og uvektet snitte verdiene. I dag plukker
-   * vi bare første celle, som er en kjent unøyaktighet for DMSA "small"
-   * og "medium" som dekker 2 SSB-bins hver.
-   */
-  private mapSizeToSSBCode(size: string): string {
-    const codes = mapSizeToSSBCodes(size);
-    return codes[0] ?? '';
-  }
-
-  /**
-   * Transform cloud benefits data into success pattern
-   */
-  transformCloudBenefits(ssbData: any, sector: string, companySize: string): SuccessPattern {
-    // Extract from table 10967
-    const benefits = [
-      { benefit: 'Kostnadsreduksjon', percentage: 65, rank: 1 },
-      { benefit: 'Fleksibilitet', percentage: 58, rank: 2 },
-      { benefit: 'Skalerbarhet', percentage: 45, rank: 3 }
-    ];
-
-    return {
-      adoptionRate: 72, // % using cloud
-      topBenefits: benefits,
-      roi: 'high'
-    };
-  }
-
-  /**
-   * Transform AI use cases data into success pattern
-   */
-  transformAIUseCases(ssbData: any, sector: string, companySize: string): SuccessPattern {
-    // Extract from table 13271
-    const useCases = [
-      { purpose: 'Automatisering av prosesser', percentage: 42, dimension: 'automation' },
-      { purpose: 'Kundeservice chatbots', percentage: 35, dimension: 'digitalReadiness' },
-      { purpose: 'Dataanalyse og prediksjon', percentage: 31, dimension: 'dataManagement' }
-    ];
-
-    const adoptionRate = 28;
-
-    return {
-      adoptionRate,
-      topUseCases: useCases,
-      maturityLevel: this.deriveMaturityLevel(adoptionRate)
-    };
   }
 
   getDebugStats() {
@@ -431,57 +340,21 @@ export class SSBTransformer {
   }
 
   /**
-   * Transform cybersecurity incidents into challenge data
-   */
-  transformCybersecurityChallenges(ssbData: any, sector: string, companySize: string): ChallengeData {
-    // Extract from table 12771
-    const incidents = [
-      { type: 'Phishing/social engineering', percentage: 58, severity: 'medium' as const },
-      { type: 'Malware/ransomware', percentage: 34, severity: 'high' as const },
-      { type: 'Datalekkasje', percentage: 28, severity: 'high' as const }
-    ];
-
-    return {
-      incidentRate: 23,
-      topIncidents: incidents,
-      preparednessGap: 0.35
-    };
-  }
-
-  /**
-   * Transform AI barriers into challenge data
-   */
-  transformAIBarriers(ssbData: any, sector: string, companySize: string): ChallengeData {
-    // Extract from table 13272
-    const barriers = [
-      { barrier: 'Manglende kompetanse', percentage: 52, addressable: true },
-      { barrier: 'For dyrt', percentage: 45, addressable: true },
-      { barrier: 'Usikkerhet om nytte', percentage: 38, addressable: true },
-      { barrier: 'Datakvalitet', percentage: 31, addressable: true }
-    ];
-
-    const addressableCount = barriers.filter(b => b.addressable).length;
-    const overcomePotential = addressableCount / barriers.length > 0.7 ? 'high' : 'medium';
-
-    return {
-      nonAdopterRate: 72,
-      topBarriers: barriers,
-      overcomePotential: overcomePotential as 'high' | 'medium' | 'low'
-    };
-  }
-
-  /**
-   * Generate recommendations based on benchmark data
+   * Generate recommendations based on benchmark data.
+   *
+   * Måler mot dimensjonens sterkeste SSB-indikator (`indicatorMax`) — ikke mot
+   * en «topp-kvartil av foretak», som datagrunnlaget ikke gir oss.
    */
   generateRecommendations(
     userScore: Record<string, number>,
-    benchmarkData: Record<string, DimensionScore>,
-    intelligence: IntelligenceData
+    benchmarkData: Record<string, DimensionScore>
   ): Recommendation[] {
     const recommendations: Recommendation[] = [];
 
     for (const [dimension, benchmark] of Object.entries(benchmarkData)) {
-      const gap = benchmark.p75 - (userScore[dimension] || 0);
+      if (benchmark.indicatorCount === 0) continue;
+
+      const gap = benchmark.indicatorMax - (userScore[dimension] || 0);
 
       if (gap <= 10) continue; // Only recommend if significant gap
 
@@ -490,10 +363,11 @@ export class SSBTransformer {
       const rec: Recommendation = {
         dimension,
         priority,
-        insight: `Din sektor har ${benchmark.p50}% gjennomsnitt, med topp-kvartil på ${benchmark.p75}%. ` +
-                 `Du scorer ${userScore[dimension] || 0}%, ${gap} poeng under topp-kvartil.`,
-        action: this.generateAction(dimension, intelligence),
-        challenge: this.generateChallenge(dimension, intelligence),
+        insight: `Din sektor ligger på ${benchmark.average}% i snitt over ${benchmark.indicatorCount} ` +
+                 `SSB-indikator(er), med ${benchmark.indicatorMax}% på den sterkeste. ` +
+                 `Du scorer ${userScore[dimension] || 0}%, ${gap} poeng under den.`,
+        action: this.generateAction(dimension),
+        challenge: this.generateChallenge(dimension),
         successRate: 0.75,
         timeToValue: gap > 20 ? '6-12 months' : '3-6 months',
         investment: gap > 20 ? 'medium' : 'low'
@@ -508,13 +382,6 @@ export class SSBTransformer {
     });
   }
 
-  private deriveMaturityLevel(adoptionRate: number): 'emerging' | 'growing' | 'established' | 'advanced' {
-    if (adoptionRate < 25) return 'emerging';
-    if (adoptionRate < 50) return 'growing';
-    if (adoptionRate < 75) return 'established';
-    return 'advanced';
-  }
-
   private categorizePriority(gap: number, dimension: string): 'high' | 'medium' | 'low' {
     const criticalDimensions = ['dataManagement', 'automation'];
 
@@ -523,7 +390,7 @@ export class SSBTransformer {
     return 'low';
   }
 
-  private generateAction(dimension: string, intelligence: IntelligenceData): string {
+  private generateAction(dimension: string): string {
     const actions: Record<string, string> = {
       automation: 'Start med AI for prosessautomatisering - 42% av peers oppnådde ROI innen 12 måneder',
       digitalReadiness: 'Implementer cloud services for e-post og fillagring - laveste risiko, høyest benefit',
@@ -536,7 +403,7 @@ export class SSBTransformer {
     return actions[dimension] || 'Vurder digitaliseringstiltak i denne dimensjonen';
   }
 
-  private generateChallenge(dimension: string, intelligence: IntelligenceData): string | undefined {
+  private generateChallenge(dimension: string): string | undefined {
     const challenges: Record<string, string> = {
       automation: 'Manglende kompetanse (52% barrier) - vurder ekstern opplæring eller konsulentbistand',
       digitalReadiness: 'Sikkerhetshensyn (48% barrier) - velg norsk/EU-basert leverandør',
@@ -557,7 +424,7 @@ export class SSBTransformer {
   ): Promise<BenchmarkData> {
     const dimensionIds = Object.keys(tableMapping) as DimensionKey[];
 
-    let dimensions: Record<DimensionKey, DimensionScore> = {};
+    const dimensions: Partial<Record<DimensionKey, DimensionScore>> = {};
     let inferred = false;
 
     // Handle micro (1–9) inference when SSB lacks coverage
@@ -577,10 +444,10 @@ export class SSBTransformer {
         const factor = 0.6; // see docs/SSB_EXTRACTION_GUIDE.md
         dimensions[dimensionId] = {
           average: Math.round((raw.average ?? 0) * factor),
-          p25: Math.round(raw.p25 * factor),
-          p50: Math.round(raw.p50 * factor),
-          p75: Math.round(raw.p75 * factor),
-          sampleSize: Math.max(50, Math.round((raw.sampleSize || 0) * factor)),
+          indicatorMin: Math.round(raw.indicatorMin * factor),
+          indicatorMedian: Math.round(raw.indicatorMedian * factor),
+          indicatorMax: Math.round(raw.indicatorMax * factor),
+          indicatorCount: raw.indicatorCount,
           score: Math.round((raw.average ?? 0) * factor)
         };
       } else {
@@ -590,14 +457,20 @@ export class SSBTransformer {
 
     // Calculate overall score
     const overallAvg = Math.round(
-      Object.values(dimensions).reduce((sum, d) => sum + (d.average ?? 0), 0) / dimensionIds.length
+      dimensionIds.reduce((sum, id) => sum + (dimensions[id]?.average ?? 0), 0) / dimensionIds.length
     );
 
-    const lowSampleDimensions = dimensionIds.filter(
-      (dimensionId) => (dimensions[dimensionId]?.sampleSize ?? 0) < 30
-    );
+    // SSB gir ingen utvalgsstørrelse, så «nok data» må måles i antall indikatorer
+    // som faktisk ga en verdi. Den gamle terskelen (`sampleSize < 30`) kunne aldri
+    // slå ut, siden hver celle ble tildelt en oppdiktet sampleSize på 100.
+    // greenDigitalization har bare én konfigurert tabell, så terskelen må være
+    // relativ til hva dimensjonen faktisk kan levere.
+    const lowCoverageDimensions = dimensionIds.filter((dimensionId) => {
+      const required = Math.min(2, tableMapping[dimensionId].tables.length);
+      return (dimensions[dimensionId]?.indicatorCount ?? 0) < required;
+    });
     const generatedAt = new Date().toISOString();
-    const hasSufficientData = !inferred && lowSampleDimensions.length === 0;
+    const hasSufficientData = !inferred && lowCoverageDimensions.length === 0;
 
     const dimensionSources = Object.fromEntries(
       dimensionIds.map(dim => [
@@ -609,36 +482,22 @@ export class SSBTransformer {
       ])
     ) as Record<DimensionKey, { tables: string[]; indicators: string[] }>;
 
-    // Transform intelligence data
-    const intelligence: IntelligenceData = {
-      successPatterns: {
-        cloudServices: this.transformCloudBenefits(ssbData, sector, companySize),
-        aiApplications: this.transformAIUseCases(ssbData, sector, companySize)
-      },
-      commonChallenges: {
-        cybersecurity: this.transformCybersecurityChallenges(ssbData, sector, companySize),
-        aiAdoption: this.transformAIBarriers(ssbData, sector, companySize)
-      },
-      recommendations: []
-    };
-
     return {
       sector,
       companySize,
-      dimensions,
+      dimensions: dimensions as Record<DimensionKey, DimensionScore>,
+      // `top25` og `sampleSize` er utelatt med vilje — de var henholdsvis
+      // `snitt + 15` og konstanten 450, altså tall uten grunnlag i SSB-dataene.
       overall: {
-        average: overallAvg,
-        top25: Math.min(100, overallAvg + 15),
-        sampleSize: 450
+        average: overallAvg
       },
-      intelligence,
       dataSource: inferred ? 'ssb-inferred' : 'ssb',
       hasSufficientData,
       lastUpdated: generatedAt,
       ssbTables: Array.from(new Set(Object.values(tableMapping).flatMap(cfg => cfg.tables))),
       metadata: {
         generatedAt,
-        lowSampleDimensions,
+        lowCoverageDimensions,
         sector,
         companySize,
         ...(region ? { region } : {}),

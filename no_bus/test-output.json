@@ -1,0 +1,572 @@
+{
+  "metadata": {
+    "extractedAt": "2025-10-06T15:06:50.142Z",
+    "totalSegments": 3,
+    "successful": 3,
+    "failed": 0,
+    "options": {
+      "sector": "C",
+      "size": null,
+      "dryRun": true,
+      "skipIntelligence": false,
+      "output": "./test-output.json"
+    }
+  },
+  "benchmarks": [
+    {
+      "sector": "C",
+      "sectorName": "Industri",
+      "companySize": "small",
+      "dimensions": {
+        "digitalStrategy": {
+          "score": 58,
+          "p25": 43,
+          "p50": 58,
+          "p75": 73,
+          "sampleSize": 300
+        },
+        "digitalReadiness": {
+          "score": 72,
+          "p25": 57,
+          "p50": 72,
+          "p75": 87,
+          "sampleSize": 150
+        },
+        "humanCentric": {
+          "score": 58,
+          "p25": 43,
+          "p50": 58,
+          "p75": 73,
+          "sampleSize": 150
+        },
+        "dataManagement": {
+          "score": 57,
+          "p25": 42,
+          "p50": 57,
+          "p75": 72,
+          "sampleSize": 600
+        },
+        "automation": {
+          "score": 61,
+          "p25": 46,
+          "p50": 61,
+          "p75": 76,
+          "sampleSize": 450
+        },
+        "greenDigitalization": {
+          "score": 50,
+          "p25": 35,
+          "p50": 50,
+          "p75": 65,
+          "sampleSize": 100
+        }
+      },
+      "overall": {
+        "average": 59,
+        "top25": 74,
+        "sampleSize": 450
+      },
+      "intelligence": {
+        "successPatterns": {
+          "cloudServices": {
+            "adoptionRate": 72,
+            "topBenefits": [
+              {
+                "benefit": "Kostnadsreduksjon",
+                "percentage": 65,
+                "rank": 1
+              },
+              {
+                "benefit": "Fleksibilitet",
+                "percentage": 58,
+                "rank": 2
+              },
+              {
+                "benefit": "Skalerbarhet",
+                "percentage": 45,
+                "rank": 3
+              }
+            ],
+            "roi": "high"
+          },
+          "aiApplications": {
+            "adoptionRate": 28,
+            "topUseCases": [
+              {
+                "purpose": "Automatisering av prosesser",
+                "percentage": 42,
+                "dimension": "automation"
+              },
+              {
+                "purpose": "Kundeservice chatbots",
+                "percentage": 35,
+                "dimension": "digitalReadiness"
+              },
+              {
+                "purpose": "Dataanalyse og prediksjon",
+                "percentage": 31,
+                "dimension": "dataManagement"
+              }
+            ],
+            "maturityLevel": "growing"
+          }
+        },
+        "commonChallenges": {
+          "cybersecurity": {
+            "incidentRate": 23,
+            "topIncidents": [
+              {
+                "type": "Phishing/social engineering",
+                "percentage": 58,
+                "severity": "medium"
+              },
+              {
+                "type": "Malware/ransomware",
+                "percentage": 34,
+                "severity": "high"
+              },
+              {
+                "type": "Datalekkasje",
+                "percentage": 28,
+                "severity": "high"
+              }
+            ],
+            "preparednessGap": 0.35
+          },
+          "aiAdoption": {
+            "nonAdopterRate": 72,
+            "topBarriers": [
+              {
+                "barrier": "Manglende kompetanse",
+                "percentage": 52,
+                "addressable": true
+              },
+              {
+                "barrier": "For dyrt",
+                "percentage": 45,
+                "addressable": true
+              },
+              {
+                "barrier": "Usikkerhet om nytte",
+                "percentage": 38,
+                "addressable": true
+              },
+              {
+                "barrier": "Datakvalitet",
+                "percentage": 31,
+                "addressable": true
+              }
+            ],
+            "overcomePotential": "high"
+          }
+        },
+        "recommendations": []
+      },
+      "dataSource": "ssb",
+      "hasSufficientData": true,
+      "lastUpdated": "2025-10-06T15:06:47.309Z",
+      "ssbTables": [
+        "10974",
+        "10980",
+        "12357",
+        "12769",
+        "10970",
+        "10971",
+        "10966",
+        "10975",
+        "10977",
+        "11307",
+        "13737",
+        "10964",
+        "10965",
+        "12768",
+        "13737",
+        "13738",
+        "10966",
+        "10980",
+        "14034",
+        "14035",
+        "12769",
+        "12770",
+        "12771",
+        "13265",
+        "13271",
+        "12351",
+        "14034",
+        "13740",
+        "13739",
+        "12357"
+      ]
+    },
+    {
+      "sector": "C",
+      "sectorName": "Industri",
+      "companySize": "medium",
+      "dimensions": {
+        "digitalStrategy": {
+          "score": 62,
+          "p25": 47,
+          "p50": 62,
+          "p75": 77,
+          "sampleSize": 300
+        },
+        "digitalReadiness": {
+          "score": 59,
+          "p25": 44,
+          "p50": 59,
+          "p75": 74,
+          "sampleSize": 150
+        },
+        "humanCentric": {
+          "score": 64,
+          "p25": 49,
+          "p50": 64,
+          "p75": 79,
+          "sampleSize": 150
+        },
+        "dataManagement": {
+          "score": 74,
+          "p25": 59,
+          "p50": 74,
+          "p75": 89,
+          "sampleSize": 600
+        },
+        "automation": {
+          "score": 69,
+          "p25": 54,
+          "p50": 69,
+          "p75": 84,
+          "sampleSize": 450
+        },
+        "greenDigitalization": {
+          "score": 50,
+          "p25": 35,
+          "p50": 50,
+          "p75": 65,
+          "sampleSize": 100
+        }
+      },
+      "overall": {
+        "average": 63,
+        "top25": 78,
+        "sampleSize": 450
+      },
+      "intelligence": {
+        "successPatterns": {
+          "cloudServices": {
+            "adoptionRate": 72,
+            "topBenefits": [
+              {
+                "benefit": "Kostnadsreduksjon",
+                "percentage": 65,
+                "rank": 1
+              },
+              {
+                "benefit": "Fleksibilitet",
+                "percentage": 58,
+                "rank": 2
+              },
+              {
+                "benefit": "Skalerbarhet",
+                "percentage": 45,
+                "rank": 3
+              }
+            ],
+            "roi": "high"
+          },
+          "aiApplications": {
+            "adoptionRate": 28,
+            "topUseCases": [
+              {
+                "purpose": "Automatisering av prosesser",
+                "percentage": 42,
+                "dimension": "automation"
+              },
+              {
+                "purpose": "Kundeservice chatbots",
+                "percentage": 35,
+                "dimension": "digitalReadiness"
+              },
+              {
+                "purpose": "Dataanalyse og prediksjon",
+                "percentage": 31,
+                "dimension": "dataManagement"
+              }
+            ],
+            "maturityLevel": "growing"
+          }
+        },
+        "commonChallenges": {
+          "cybersecurity": {
+            "incidentRate": 23,
+            "topIncidents": [
+              {
+                "type": "Phishing/social engineering",
+                "percentage": 58,
+                "severity": "medium"
+              },
+              {
+                "type": "Malware/ransomware",
+                "percentage": 34,
+                "severity": "high"
+              },
+              {
+                "type": "Datalekkasje",
+                "percentage": 28,
+                "severity": "high"
+              }
+            ],
+            "preparednessGap": 0.35
+          },
+          "aiAdoption": {
+            "nonAdopterRate": 72,
+            "topBarriers": [
+              {
+                "barrier": "Manglende kompetanse",
+                "percentage": 52,
+                "addressable": true
+              },
+              {
+                "barrier": "For dyrt",
+                "percentage": 45,
+                "addressable": true
+              },
+              {
+                "barrier": "Usikkerhet om nytte",
+                "percentage": 38,
+                "addressable": true
+              },
+              {
+                "barrier": "Datakvalitet",
+                "percentage": 31,
+                "addressable": true
+              }
+            ],
+            "overcomePotential": "high"
+          }
+        },
+        "recommendations": []
+      },
+      "dataSource": "ssb",
+      "hasSufficientData": true,
+      "lastUpdated": "2025-10-06T15:06:48.802Z",
+      "ssbTables": [
+        "10974",
+        "10980",
+        "12357",
+        "12769",
+        "10970",
+        "10971",
+        "10966",
+        "10975",
+        "10977",
+        "11307",
+        "13737",
+        "10964",
+        "10965",
+        "12768",
+        "13737",
+        "13738",
+        "10966",
+        "10980",
+        "14034",
+        "14035",
+        "12769",
+        "12770",
+        "12771",
+        "13265",
+        "13271",
+        "12351",
+        "14034",
+        "13740",
+        "13739",
+        "12357"
+      ]
+    },
+    {
+      "sector": "C",
+      "sectorName": "Industri",
+      "companySize": "large",
+      "dimensions": {
+        "digitalStrategy": {
+          "score": 80,
+          "p25": 65,
+          "p50": 80,
+          "p75": 95,
+          "sampleSize": 300
+        },
+        "digitalReadiness": {
+          "score": 64,
+          "p25": 49,
+          "p50": 64,
+          "p75": 79,
+          "sampleSize": 150
+        },
+        "humanCentric": {
+          "score": 71,
+          "p25": 56,
+          "p50": 71,
+          "p75": 86,
+          "sampleSize": 150
+        },
+        "dataManagement": {
+          "score": 75,
+          "p25": 60,
+          "p50": 75,
+          "p75": 90,
+          "sampleSize": 600
+        },
+        "automation": {
+          "score": 77,
+          "p25": 62,
+          "p50": 77,
+          "p75": 92,
+          "sampleSize": 450
+        },
+        "greenDigitalization": {
+          "score": 50,
+          "p25": 35,
+          "p50": 50,
+          "p75": 65,
+          "sampleSize": 100
+        }
+      },
+      "overall": {
+        "average": 70,
+        "top25": 85,
+        "sampleSize": 450
+      },
+      "intelligence": {
+        "successPatterns": {
+          "cloudServices": {
+            "adoptionRate": 72,
+            "topBenefits": [
+              {
+                "benefit": "Kostnadsreduksjon",
+                "percentage": 65,
+                "rank": 1
+              },
+              {
+                "benefit": "Fleksibilitet",
+                "percentage": 58,
+                "rank": 2
+              },
+              {
+                "benefit": "Skalerbarhet",
+                "percentage": 45,
+                "rank": 3
+              }
+            ],
+            "roi": "high"
+          },
+          "aiApplications": {
+            "adoptionRate": 28,
+            "topUseCases": [
+              {
+                "purpose": "Automatisering av prosesser",
+                "percentage": 42,
+                "dimension": "automation"
+              },
+              {
+                "purpose": "Kundeservice chatbots",
+                "percentage": 35,
+                "dimension": "digitalReadiness"
+              },
+              {
+                "purpose": "Dataanalyse og prediksjon",
+                "percentage": 31,
+                "dimension": "dataManagement"
+              }
+            ],
+            "maturityLevel": "growing"
+          }
+        },
+        "commonChallenges": {
+          "cybersecurity": {
+            "incidentRate": 23,
+            "topIncidents": [
+              {
+                "type": "Phishing/social engineering",
+                "percentage": 58,
+                "severity": "medium"
+              },
+              {
+                "type": "Malware/ransomware",
+                "percentage": 34,
+                "severity": "high"
+              },
+              {
+                "type": "Datalekkasje",
+                "percentage": 28,
+                "severity": "high"
+              }
+            ],
+            "preparednessGap": 0.35
+          },
+          "aiAdoption": {
+            "nonAdopterRate": 72,
+            "topBarriers": [
+              {
+                "barrier": "Manglende kompetanse",
+                "percentage": 52,
+                "addressable": true
+              },
+              {
+                "barrier": "For dyrt",
+                "percentage": 45,
+                "addressable": true
+              },
+              {
+                "barrier": "Usikkerhet om nytte",
+                "percentage": 38,
+                "addressable": true
+              },
+              {
+                "barrier": "Datakvalitet",
+                "percentage": 31,
+                "addressable": true
+              }
+            ],
+            "overcomePotential": "high"
+          }
+        },
+        "recommendations": []
+      },
+      "dataSource": "ssb",
+      "hasSufficientData": true,
+      "lastUpdated": "2025-10-06T15:06:50.141Z",
+      "ssbTables": [
+        "10974",
+        "10980",
+        "12357",
+        "12769",
+        "10970",
+        "10971",
+        "10966",
+        "10975",
+        "10977",
+        "11307",
+        "13737",
+        "10964",
+        "10965",
+        "12768",
+        "13737",
+        "13738",
+        "10966",
+        "10980",
+        "14034",
+        "14035",
+        "12769",
+        "12770",
+        "12771",
+        "13265",
+        "13271",
+        "12351",
+        "14034",
+        "13740",
+        "13739",
+        "12357"
+      ]
+    }
+  ]
+}

@@ -6,8 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminFirestore } from '@/lib/firebase-admin';
-import { COLLECTIONS, DOCUMENT_IDS } from '@/types/firestore-schema';
+import { getSurvey, toSurveyDocument } from '@/lib/db';
 import { verifySessionToken, type SessionPayload } from '@/lib/session-token';
 
 interface RouteParams {
@@ -85,11 +84,9 @@ export async function GET(request: NextRequest, props: RouteParams) {
       );
     }
 
-    // Fetch survey with retrieval token
-    const db = getAdminFirestore();
-    const surveyDoc = await db.collection(COLLECTIONS.SURVEYS).doc(surveyId).get();
+    const row = await getSurvey(surveyId);
 
-    if (!surveyDoc.exists) {
+    if (!row) {
       return NextResponse.json(
         {
           success: false,
@@ -102,38 +99,22 @@ export async function GET(request: NextRequest, props: RouteParams) {
       );
     }
 
-    const surveyData = surveyDoc.data();
-
-    // Get private user details subcollection
-    const userDetailsDoc = await db
-      .collection(COLLECTIONS.SURVEYS)
-      .doc(surveyId)
-      .collection('private')
-      .doc('userDetails')
-      .get();
-
-    // Get retrieval token from private user details (not from public survey doc)
-    const userDetails = userDetailsDoc.exists ? userDetailsDoc.data() : null;
-    const retrievalToken = userDetails?.retrievalToken;
-
-    // Check if user has expanded access (T1 state)
-    const hasExpandedAccess = surveyData?.state === 'T1' && surveyData?.flags?.hasExpandedAccess;
-
-    // Fetch full results
-    const resultsDoc = await db
-      .collection(COLLECTIONS.SURVEYS)
-      .doc(surveyId)
-      .collection(COLLECTIONS.RESULTS)
-      .doc(DOCUMENT_IDS.PUBLIC_RESULTS)
-      .get();
+    const survey = toSurveyDocument(row);
 
     return NextResponse.json({
       success: true,
       data: {
-        survey: surveyData,
-        retrievalToken, // Return the actual token for authenticated users
-        results: resultsDoc.exists ? resultsDoc.data() : null,
-        hasExpandedAccess,
+        survey: {
+          ...survey,
+          retrieval: { ...survey.retrieval, tokenHash: '[REDACTED]' },
+        },
+        // Kun hashen av uthentingstokenet lagres, så det kan ikke gjenskapes
+        // her. Feltet returneres fortsatt for API-kompatibilitet, men var
+        // også tidligere alltid undefined: upgrade-ruten skrev aldri noen
+        // `retrievalToken` inn i private/userDetails.
+        retrievalToken: undefined,
+        results: row.scores,
+        hasExpandedAccess: survey.flags.hasExpandedAccess,
       },
     });
   } catch (error) {

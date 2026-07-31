@@ -8,7 +8,9 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: false,
     dirs: ['app', 'components', 'lib', 'types', 'data'], // Only lint actual app directories
   },
-  // Exclude parallel-workspace folders from compilation
+  // Keep the dev file-watcher off the parallel workspaces. NB: this only affects
+  // watching — the actual exclusion from compilation comes from `exclude` in
+  // tsconfig.json.
   webpack: (config) => {
     config.watchOptions = {
       ignored: [

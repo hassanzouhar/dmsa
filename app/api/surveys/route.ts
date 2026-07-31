@@ -5,18 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminFirestore } from '@/lib/firebase-admin';
+import { createSurvey, type SurveyVersion, type Language, type CompanySize } from '@/lib/db';
 import { createRetrievalToken, checkRateLimit } from '@/lib/token-utils';
 import { mapNaceToSector } from '@/lib/nace';
-import { 
-  SurveyDocument, 
-  CompanyDetails, 
-  CreateSurveyResponse, 
-  ApiError,
-  SurveyState,
-  SurveyVersion,
-  Language,
-} from '@/types/firestore-schema';
+import type { CompanyDetails, CreateSurveyResponse, ApiError } from '@/types/survey';
 import { v4 as uuidv4 } from 'uuid';
 
 // Input validation for company details
@@ -142,60 +134,25 @@ export async function POST(request: NextRequest) {
     
     // Generate unique survey ID
     const surveyId = uuidv4().replace(/-/g, '').substring(0, 10);
-    
+
     // Create retrieval token
-    const { token, tokenHash, createdAt, revoked } = createRetrievalToken();
-    
+    const { token, tokenHash } = createRetrievalToken();
+
     // Derive sector from NACE code
     const sector = mapNaceToSector(companyDetails.nace);
-    
-    // Create survey document
-    const surveyDoc: SurveyDocument = {
+
+    await createSurvey({
       id: surveyId,
-      state: 'T0' as SurveyState,
       surveyVersion: surveyVersion as SurveyVersion,
       language: language as Language,
-      createdAt: new Date().toISOString(),
-      companyDetails: {
-        companyName: companyDetails.companyName.trim(),
-        companySize: companyDetails.companySize,
-        nace: companyDetails.nace.trim().toUpperCase(),
-        sector: sector,
-        region: companyDetails.region.trim(),
-      },
-      flags: {
-        isCompleted: false,
-        hasResults: false,
-        hasExpandedAccess: false,
-        includeInLeaderboard: true,
-      },
-      retrieval: {
-        tokenHash,
-        createdAt,
-        revoked,
-      },
-    };
-    
-    // Initialize Admin SDK
-    const db = getAdminFirestore();
-    
-    // Save survey to Firestore
-    await db.collection('surveys').doc(surveyId).set(surveyDoc);
-    
-    // Track survey creation event
-    await db.collection('analytics_events').add({
-      event: 'survey_created',
-      timestamp: new Date().toISOString(),
-      serverTimestamp: new Date(),
-      surveyId,
-      language,
-      surveyVersion,
-      companySize: companyDetails.companySize,
+      companyName: companyDetails.companyName.trim(),
+      companySize: companyDetails.companySize as CompanySize,
+      nace: companyDetails.nace.trim().toUpperCase(),
       sector,
-      region: companyDetails.region,
-      userAgent: request.headers.get('user-agent') || undefined,
+      region: companyDetails.region.trim(),
+      tokenHash,
     });
-    
+
     console.log(`✅ Survey created: ${surveyId} (${sector}, ${companyDetails.companySize})`);
     
     // Return success response with token (only returned once)

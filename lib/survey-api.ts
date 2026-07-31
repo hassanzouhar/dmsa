@@ -11,7 +11,7 @@ import {
   CreateSurveyResponse,
   SurveyResultsResponse,
   ApiResponse
-} from '@/types/firestore-schema';
+} from '@/types/survey';
 import { AssessmentResults, AnswerMap } from '@/types/assessment';
 
 // Extended company details for frontend form

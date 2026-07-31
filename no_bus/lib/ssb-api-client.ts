@@ -12,32 +12,30 @@
 import {
   mapSizeToSSBCodes,
   mapSectorToNaceCodes,
+  regionCodeVariants,
   SSB_NO_COVERAGE_REASON
 } from './ssb-mapping';
+import { tableMapping } from '../src/mapping/dimensionMapping';
 
 const SSB_BASE_URL = 'https://data.ssb.no/api/pxwebapi/v2';
 const RATE_LIMIT = 30; // requests per minute
 const RATE_WINDOW = 60000; // 1 minute in ms
 
 /**
- * Kjerne- og tilvalgstabeller for DTAM-benchmarkpipen.
- * Hold denne listen synkron med transformasjonen.
+ * Tabellene DTAM-benchmarkpipen faktisk leser — utledet fra `tableMapping` i
+ * stedet for å vedlikeholdes som en parallell liste. Den håndskrevne varianten
+ * hadde allerede drevet fra transformasjonen.
  */
-export const coreTables: Record<string, string> = {
-  cloud: '10966',
-  ecommerce: '10974',
-  dataExchange: '10983',
-  analytics: '14034',
-  aiUsage: '13265',
-  aiPurpose: '13271',
-  aiBarriers: '13272',
-  securityMeasures: '12769'
-};
+export const coreTables: string[] = Array.from(
+  new Set(Object.values(tableMapping).flatMap(cfg => cfg.tables))
+);
 
-export const optionalTables: Record<string, string> = {
-  digitalPlans: '10964',
-  securityIncidents: '12771'
-};
+/**
+ * Tabeller som finnes i SSB, men som ingen dimensjon leser ennå. De hentes kun
+ * med `--include-optional` og påvirker ikke skårene før de kobles inn i
+ * `tableMapping`.
+ */
+export const optionalTables: string[] = ['10967']; // Skytjenester: nytteeffekter
 
 interface SSBRequestOptions {
   language?: 'no' | 'en';
@@ -290,15 +288,8 @@ class SSBApiClient {
     return results;
   }
 
-  async fetchCoreTables(
-    options: SSBRequestOptions = {},
-    includeOptional = false
-  ): Promise<Record<string, any>> {
-    const tablesToFetch = [...Object.values(coreTables)];
-    if (includeOptional) {
-      tablesToFetch.push(...Object.values(optionalTables));
-    }
-    return this.batchFetchTables(tablesToFetch, options);
+  async fetchCoreTables(options: SSBRequestOptions = {}): Promise<Record<string, any>> {
+    return this.batchFetchTables(coreTables, options);
   }
 
   /**
@@ -334,43 +325,31 @@ class SSBApiClient {
   /**
    * Helper: Find dimension by semantic type
    */
-  private findDimensionByType(metadata: any, type: 'sector' | 'size' | 'time' | 'region'): any {
+  private findDimensionByType(
+    metadata: any,
+    type: 'sector' | 'size' | 'time' | 'region'
+  ): { id: string; label?: string; category?: any } | null {
     if (!metadata?.dimension) return null;
 
-    const dimensions = Object.values(metadata.dimension);
+    // JSON-stat2 legger dimensjons-ID-en i NØKKELEN, ikke i verdiobjektet.
+    // Å lese `dim.id` ga `undefined`, som ble til query-koden "undefined" og
+    // fikk SSB til å svare 400 på hvert eneste segment-kall.
+    const entries = Object.entries<any>(metadata.dimension);
 
-    // Common Norwegian dimension names
+    // Common Norwegian dimension names. NB: SSB bruker nynorskformen
+    // «sysselsette» i flere tabeller, så mønsteret må matche stammen.
     const patterns = {
       sector: /n[æå]ring|sektor|sn2007|nace/i,
-      size: /sysselsetting|ansatte|st[øo]rrelse/i,
+      size: /syssel|ansatte|st[øo]rrelse/i,
       time: /tid|år|periode|kvartal|måned/i,
       region: /region|fylke|county|kommune/i
     };
 
-    return dimensions.find((dim: any) =>
-      patterns[type].test(dim.label) || patterns[type].test(dim.id)
+    const match = entries.find(([key, dim]) =>
+      patterns[type].test(dim?.label ?? '') || patterns[type].test(key)
     );
-  }
 
-  /**
-   * @deprecated Bruk `mapSectorToNaceCodes` fra `./ssb-mapping`.
-   * Denne wrappen returnerer en array som før, men returnerer tom array
-   * for sektorer uten SSB-dekning (tidligere fall-back til 'Total' osv.
-   * fjernet — det skjulte feil mer enn det hjalp).
-   */
-  private mapSectorToSSBCode(sector: string): string[] {
-    return mapSectorToNaceCodes(sector);
-  }
-
-  /**
-   * @deprecated Bruk `mapSizeToSSBCodes` (plural) fra `./ssb-mapping`.
-   * Returnerer første kode for bakoverkompatibilitet — eksisterende
-   * kallesteder som forventet en single string. Empty string hvis
-   * ingen dekning.
-   */
-  private mapSizeToSSBCode(size: string): string {
-    const codes = mapSizeToSSBCodes(size);
-    return codes[0] ?? '';
+    return match ? { id: match[0], ...match[1] } : null;
   }
 
   /**
@@ -388,12 +367,18 @@ class SSBApiClient {
 
     const valueCodes: Record<string, string> = {};
     if (regionDimension) {
-      // Try various forms to be robust: exact, without 'NO-', with 'NO' prefix
-      const key = region;
-      const compact = region.replace(/^NO-/, '');
-      const withNo = compact.startsWith('NO') ? compact : `NO-${compact}`;
-      // We cannot read index keys here without another request; let server validate
-      valueCodes[regionDimension.id] = key;
+      // Metadata er allerede hentet — slå opp hvilken skrivemåte tabellen bruker
+      // ('NO-03', '03' eller 'NO03') i stedet for å sende koden rå og håpe.
+      const index = regionDimension.category?.index as Record<string, number> | undefined;
+      const match = index
+        ? regionCodeVariants(region).find(variant => index[variant] !== undefined)
+        : undefined;
+      if (index && !match) {
+        throw new Error(
+          `Ukjent fylkeskode ${region} for tabell ${tableId}. Tilgjengelige: ${Object.keys(index).join(', ')}`
+        );
+      }
+      valueCodes[regionDimension.id] = match ?? region;
     }
     if (timeDimension) {
       valueCodes[timeDimension.id] = 'top(1)';

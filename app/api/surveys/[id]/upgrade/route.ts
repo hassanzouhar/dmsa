@@ -5,15 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminFirestore } from '@/lib/firebase-admin';
+import { getSurvey, upgradeSurvey } from '@/lib/db';
 import { verifyToken, checkRateLimit } from '@/lib/token-utils';
-import { addSurveyToEmail } from '@/lib/email-survey-mapping';
 import { sendAssessmentCompleteEmail } from '@/lib/email-service';
-import {
-  SurveyDocument,
-  PrivateUserDetailsDocument,
-  ApiError,
-} from '@/types/firestore-schema';
+import type { ApiError } from '@/types/survey';
 
 export async function POST(
   request: NextRequest,
@@ -92,13 +87,9 @@ export async function POST(
       );
     }
 
-    // Initialize Admin SDK
-    const db = getAdminFirestore();
-    
-    // Get survey document
-    const surveyDoc = await db.collection('surveys').doc(surveyId).get();
-    
-    if (!surveyDoc.exists) {
+    const survey = await getSurvey(surveyId);
+
+    if (!survey) {
       return NextResponse.json(
         {
           success: false,
@@ -111,10 +102,8 @@ export async function POST(
       );
     }
 
-    const survey = surveyDoc.data() as SurveyDocument;
-    
     // Check if token is revoked
-    if (survey.retrieval.revoked) {
+    if (survey.token_revoked) {
       return NextResponse.json(
         {
           success: false,
@@ -128,7 +117,7 @@ export async function POST(
     }
     
     // Verify token
-    if (!verifyToken(token, survey.retrieval.tokenHash)) {
+    if (!verifyToken(token, survey.token_hash)) {
       return NextResponse.json(
         {
           success: false,
@@ -141,8 +130,16 @@ export async function POST(
       );
     }
 
-    // Check if survey is already upgraded
-    if (survey.flags.hasExpandedAccess) {
+    // E-posten lagres på selve raden. Den separate email_surveys-koblingen
+    // er borte — «alle surveys for denne e-posten» er nå et indeksoppslag.
+    const upgradedAt = await upgradeSurvey({
+      id: surveyId,
+      email: userDetails.email,
+      contactName: userDetails.contactName,
+      policyVersion: userDetails.policyVersion || 'v1.0',
+    });
+
+    if (!upgradedAt) {
       return NextResponse.json(
         {
           success: false,
@@ -155,66 +152,6 @@ export async function POST(
       );
     }
 
-    // Prepare upgrade data
-    const upgradedAt = new Date().toISOString();
-    const privateUserDetails: PrivateUserDetailsDocument = {
-      email: userDetails.email,
-      emailDomain: userDetails.email.split('@')[1]?.toLowerCase() || '',
-      contactName: userDetails.contactName,
-      createdAt: upgradedAt,
-      consentAcceptedAt: upgradedAt,
-      policyVersion: userDetails.policyVersion || 'v1.0',
-    };
-
-    // Use a batch write for atomicity
-    const batch = db.batch();
-
-    // Update survey document
-    const surveyRef = db.collection('surveys').doc(surveyId);
-    batch.update(surveyRef, {
-      upgradedAt,
-      state: 'T1',
-      'flags.hasExpandedAccess': true,
-    });
-
-    // Save private user details
-    const userDetailsRef = db.collection('surveys').doc(surveyId)
-      .collection('private').doc('userDetails');
-    batch.set(userDetailsRef, privateUserDetails);
-
-    // Commit the batch
-    await batch.commit();
-
-    // Add email to survey mapping for magic link retrieval
-    try {
-      await addSurveyToEmail(userDetails.email, surveyId);
-      console.log(`✅ Added email mapping for survey ${surveyId}`);
-    } catch (error) {
-      console.error('Failed to add email mapping:', error);
-      // Don't fail the upgrade if mapping fails - it's not critical
-    }
-
-    // Track upgrade event
-    const analyticsEvent: Record<string, unknown> = {
-      event: 'survey_upgraded',
-      timestamp: new Date().toISOString(),
-      serverTimestamp: new Date(),
-      surveyId,
-      language: survey.language,
-      surveyVersion: survey.surveyVersion,
-      emailDomain: privateUserDetails.emailDomain,
-      companySize: survey.companyDetails.companySize,
-      sector: survey.companyDetails.sector,
-      region: survey.companyDetails.region,
-    };
-
-    const userAgent = request.headers.get('user-agent');
-    if (userAgent) {
-      analyticsEvent.userAgent = userAgent;
-    }
-
-    await db.collection('analytics_events').add(analyticsEvent);
-
     console.log(`✅ Survey upgraded to T1: ${surveyId}`);
 
     // Send assessment completion email with retrieval link
@@ -224,7 +161,7 @@ export async function POST(
         email: userDetails.email,
         surveyId,
         retrievalToken: token, // Use the token from the request
-        overallScore: survey.overallScore,
+        overallScore: survey.overall_score ?? undefined,
       });
 
       if (emailResult.success) {
@@ -243,7 +180,7 @@ export async function POST(
         success: true,
         data: {
           surveyId,
-          upgradedAt,
+          upgradedAt: upgradedAt.toISOString(),
           hasExpandedAccess: true,
         }
       },

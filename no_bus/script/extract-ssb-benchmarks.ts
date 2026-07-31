@@ -12,47 +12,52 @@
  *   --sector <code>     Extract only specific sector (A-V)
  *   --size <id>         Extract only specific size (micro, small, medium, large)
  *   --dry-run           Preview without saving to Firestore
- *   --skip-intelligence Skip intelligence layers (faster, scoring only)
  *   --output <path>     Save to JSON file instead of Firestore
  */
 
 import { ssbClient } from '../lib/ssb-api-client';
 import { ssbTransformer } from '../lib/ssb-transformer';
 import { mapSizeToSSBCodes } from '../lib/ssb-mapping';
+import { tableMapping } from '../src/mapping/dimensionMapping';
 import { getAdminFirestore, initializeAdminSDK } from '../lib/firebase-admin';
 import { COLLECTIONS } from '../types/firestore-schema';
 import { NACE_SECTORS } from '../entities/nace-sectors';
 import fs from 'fs';
-import path from 'path';
 
-// Parse command line arguments
+// Parse command line arguments.
+// Verdi-flagg må validere at neste token faktisk er en verdi — `--output` som
+// siste argument ga tidligere `undefined`, som falt gjennom til en utilsiktet
+// skriving mot produksjons-Firestore.
 const args = process.argv.slice(2);
+
+function flagValue(name: string): string | null {
+  const idx = args.indexOf(name);
+  if (idx === -1) return null;
+  const next = args[idx + 1];
+  if (next === undefined || next.startsWith('--')) {
+    console.error(`❌ ${name} krever en verdi (fikk ${next === undefined ? 'ingenting' : next}).`);
+    process.exit(1);
+  }
+  return next;
+}
+
 const options = {
-  sector: args.includes('--sector') ? args[args.indexOf('--sector') + 1] : null,
-  size: args.includes('--size') ? args[args.indexOf('--size') + 1] : null,
+  sector: flagValue('--sector'),
+  size: flagValue('--size'),
   dryRun: args.includes('--dry-run'),
-  skipIntelligence: args.includes('--skip-intelligence'),
-  output: args.includes('--output') ? args[args.indexOf('--output') + 1] : null
+  output: flagValue('--output')
 };
 
 // Micro (1-9) ekskludert fordi SSB ICT-bruk ikke har data for foretak under 10 ansatte.
 // Se mapSizeToSSBCodes() i no_bus/lib/ssb-mapping.ts for håndtering.
 const COMPANY_SIZES = ['small', 'medium', 'large'];
 
-// Priority tables for MVP
-const PRIORITY_TABLES = [
-  '10974', // E-commerce
-  '10966', // Cloud services
-  '12769', // Security measures
-  '13265', // AI usage
-  '10964', // ICT competence
-  '14034', // Data analytics
-  // Intelligence tables
-  '10967', // Cloud benefits ⭐
-  '13271', // AI use cases ⭐
-  '12771', // Cybersecurity incidents ⭐
-  '13272', // AI barriers ⭐
-];
+// Utledet fra dimensjonsmappingen, ikke duplisert. Den håndskrevne listen hadde
+// drevet fra tableMapping: 10983 manglet (så digitalReadiness og dataManagement
+// ble snittet over 2 av 3 indikatorer), og 10967 ble hentet uten å bli lest.
+const PRIORITY_TABLES = Array.from(
+  new Set(Object.values(tableMapping).flatMap(cfg => cfg.tables))
+);
 
 interface ExtractedBenchmark {
   sector: string;
@@ -70,8 +75,8 @@ class BenchmarkExtractor {
   async extractAll() {
     console.log('🚀 SSB BENCHMARK EXTRACTION');
     console.log('=' .repeat(50));
-    console.log(`Mode: ${options.dryRun ? 'DRY RUN' : 'PRODUCTION'}`);
-    console.log(`Intelligence: ${options.skipIntelligence ? 'DISABLED' : 'ENABLED'}`);
+    console.log(`Mode: ${options.dryRun ? 'DRY RUN' : options.output ? 'FILE OUTPUT' : 'PRODUCTION (Firestore)'}`);
+    console.log(`Tables: ${PRIORITY_TABLES.join(', ')}`);
     console.log('');
 
     // Determine which segments to extract.
@@ -133,13 +138,15 @@ class BenchmarkExtractor {
       console.log(`\nFailed segments: ${this.failed.join(', ')}`);
     }
 
-    // Save or upload results
+    // Save or upload results. Skriving til Firestore krever eksplisitt fravær
+    // av både --dry-run og --output, slik at et feilskrevet flagg ikke kan
+    // ende som en produksjonsskriving.
     if (options.output) {
       await this.saveToFile();
-    } else if (!options.dryRun) {
-      await this.uploadToFirestore();
-    } else {
+    } else if (options.dryRun) {
       console.log('\n💡 Dry run complete - use --output to save results');
+    } else {
+      await this.uploadToFirestore();
     }
   }
 
@@ -162,11 +169,9 @@ class BenchmarkExtractor {
       return;
     }
 
-    // TODO (uvektet snitt): mapSizeToSSBCodes returnerer ofte FLERE koder
-    // (small=['02','03'], medium=['04','05']). For en korrekt aggregat må vi
-    // hente per-kode, vekte etter foretakspopulasjon (12936/07091), og snitte.
-    // I første pass sender vi multi-value-listen rett til SSB API og bruker
-    // uvektet snitt nedstrøms. Forbedres når firm-population-data er tilgjengelig.
+    // mapSizeToSSBCodes returnerer ofte FLERE koder (small=['02','03'],
+    // medium=['04','05']). Alle hentes og snittes uvektet i transformeren.
+    // TODO: vekt etter foretakspopulasjon (SSB 12936/07091) når den er tilgjengelig.
 
     const ssbData: Record<string, any> = {};
 
@@ -212,7 +217,7 @@ class BenchmarkExtractor {
     console.log(`   ✅ Benchmark generated`);
     console.log(`      Overall score: ${benchmark.overall.average}`);
     console.log(`      Data source: ${benchmark.dataSource}`);
-    console.log(`      Sample size: ${benchmark.overall.sampleSize}`);
+    console.log(`      Sufficient coverage: ${benchmark.hasSufficientData}`);
 
     this.extracted.push({
       sector: sectorCode,
@@ -250,7 +255,7 @@ class BenchmarkExtractor {
   }
 
   private async uploadToFirestore() {
-    console.log(`\n☁️  Uploading to Firestore...`);
+    console.log(`\n☁️  Uploading to Firestore: ${COLLECTIONS.BENCHMARKS}/{sector}/sizes/{size}`);
 
     initializeAdminSDK();
     const db = getAdminFirestore();

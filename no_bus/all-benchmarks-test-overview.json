@@ -1,0 +1,979 @@
+{
+  "metadata": {
+    "generatedAt": "2025-10-07T23:49:01.716Z",
+    "totalBenchmarks": 126,
+    "byType": {
+      "national": 1,
+      "sector": 21,
+      "size": 4,
+      "segment": 84
+    },
+    "ssbTables": [
+      "10966",
+      "10974",
+      "10983",
+      "14034",
+      "13265",
+      "13271",
+      "13272",
+      "12769"
+    ],
+    "options": {
+      "dryRun": true,
+      "output": "all-benchmarks-test.json",
+      "skipIntelligence": false,
+      "includeOptional": false
+    }
+  },
+  "structure": [
+    {
+      "path": "benchmarks/national/data/all",
+      "type": "national",
+      "id": "all",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-sector/data/A",
+      "type": "sector",
+      "id": "A",
+      "sector": "A",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-sector/data/B",
+      "type": "sector",
+      "id": "B",
+      "sector": "B",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-sector/data/C",
+      "type": "sector",
+      "id": "C",
+      "sector": "C",
+      "overallScore": 54
+    },
+    {
+      "path": "benchmarks/by-sector/data/D",
+      "type": "sector",
+      "id": "D",
+      "sector": "D",
+      "overallScore": 54
+    },
+    {
+      "path": "benchmarks/by-sector/data/E",
+      "type": "sector",
+      "id": "E",
+      "sector": "E",
+      "overallScore": 54
+    },
+    {
+      "path": "benchmarks/by-sector/data/F",
+      "type": "sector",
+      "id": "F",
+      "sector": "F",
+      "overallScore": 47
+    },
+    {
+      "path": "benchmarks/by-sector/data/G",
+      "type": "sector",
+      "id": "G",
+      "sector": "G",
+      "overallScore": 59
+    },
+    {
+      "path": "benchmarks/by-sector/data/H",
+      "type": "sector",
+      "id": "H",
+      "sector": "H",
+      "overallScore": 46
+    },
+    {
+      "path": "benchmarks/by-sector/data/I",
+      "type": "sector",
+      "id": "I",
+      "sector": "I",
+      "overallScore": 47
+    },
+    {
+      "path": "benchmarks/by-sector/data/J",
+      "type": "sector",
+      "id": "J",
+      "sector": "J",
+      "overallScore": 71
+    },
+    {
+      "path": "benchmarks/by-sector/data/K",
+      "type": "sector",
+      "id": "K",
+      "sector": "K",
+      "overallScore": 28
+    },
+    {
+      "path": "benchmarks/by-sector/data/L",
+      "type": "sector",
+      "id": "L",
+      "sector": "L",
+      "overallScore": 18
+    },
+    {
+      "path": "benchmarks/by-sector/data/M",
+      "type": "sector",
+      "id": "M",
+      "sector": "M",
+      "overallScore": 47
+    },
+    {
+      "path": "benchmarks/by-sector/data/N",
+      "type": "sector",
+      "id": "N",
+      "sector": "N",
+      "overallScore": 47
+    },
+    {
+      "path": "benchmarks/by-sector/data/O",
+      "type": "sector",
+      "id": "O",
+      "sector": "O",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-sector/data/P",
+      "type": "sector",
+      "id": "P",
+      "sector": "P",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-sector/data/Q",
+      "type": "sector",
+      "id": "Q",
+      "sector": "Q",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-sector/data/R",
+      "type": "sector",
+      "id": "R",
+      "sector": "R",
+      "overallScore": 18
+    },
+    {
+      "path": "benchmarks/by-sector/data/S",
+      "type": "sector",
+      "id": "S",
+      "sector": "S",
+      "overallScore": 18
+    },
+    {
+      "path": "benchmarks/by-sector/data/T",
+      "type": "sector",
+      "id": "T",
+      "sector": "T",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-sector/data/U",
+      "type": "sector",
+      "id": "U",
+      "sector": "U",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-size/data/micro",
+      "type": "size",
+      "id": "micro",
+      "companySize": "micro",
+      "overallScore": 33
+    },
+    {
+      "path": "benchmarks/by-size/data/small",
+      "type": "size",
+      "id": "small",
+      "companySize": "small",
+      "overallScore": 54
+    },
+    {
+      "path": "benchmarks/by-size/data/medium",
+      "type": "size",
+      "id": "medium",
+      "companySize": "medium",
+      "overallScore": 62
+    },
+    {
+      "path": "benchmarks/by-size/data/large",
+      "type": "size",
+      "id": "large",
+      "companySize": "large",
+      "overallScore": 70
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-03",
+      "type": "region",
+      "id": "NO-03",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-11",
+      "type": "region",
+      "id": "NO-11",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-15",
+      "type": "region",
+      "id": "NO-15",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-18",
+      "type": "region",
+      "id": "NO-18",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-31",
+      "type": "region",
+      "id": "NO-31",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-32",
+      "type": "region",
+      "id": "NO-32",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-33",
+      "type": "region",
+      "id": "NO-33",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-34",
+      "type": "region",
+      "id": "NO-34",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-39",
+      "type": "region",
+      "id": "NO-39",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-40",
+      "type": "region",
+      "id": "NO-40",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-42",
+      "type": "region",
+      "id": "NO-42",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-46",
+      "type": "region",
+      "id": "NO-46",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-50",
+      "type": "region",
+      "id": "NO-50",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-55",
+      "type": "region",
+      "id": "NO-55",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-56",
+      "type": "region",
+      "id": "NO-56",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/by-region/data/NO-99",
+      "type": "region",
+      "id": "NO-99",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/segments/data/A_micro",
+      "type": "segment",
+      "id": "A_micro",
+      "sector": "A",
+      "companySize": "micro",
+      "overallScore": 33
+    },
+    {
+      "path": "benchmarks/segments/data/A_small",
+      "type": "segment",
+      "id": "A_small",
+      "sector": "A",
+      "companySize": "small",
+      "overallScore": 54
+    },
+    {
+      "path": "benchmarks/segments/data/A_medium",
+      "type": "segment",
+      "id": "A_medium",
+      "sector": "A",
+      "companySize": "medium",
+      "overallScore": 61
+    },
+    {
+      "path": "benchmarks/segments/data/A_large",
+      "type": "segment",
+      "id": "A_large",
+      "sector": "A",
+      "companySize": "large",
+      "overallScore": 69
+    },
+    {
+      "path": "benchmarks/segments/data/B_micro",
+      "type": "segment",
+      "id": "B_micro",
+      "sector": "B",
+      "companySize": "micro",
+      "overallScore": 33
+    },
+    {
+      "path": "benchmarks/segments/data/B_small",
+      "type": "segment",
+      "id": "B_small",
+      "sector": "B",
+      "companySize": "small",
+      "overallScore": 54
+    },
+    {
+      "path": "benchmarks/segments/data/B_medium",
+      "type": "segment",
+      "id": "B_medium",
+      "sector": "B",
+      "companySize": "medium",
+      "overallScore": 61
+    },
+    {
+      "path": "benchmarks/segments/data/B_large",
+      "type": "segment",
+      "id": "B_large",
+      "sector": "B",
+      "companySize": "large",
+      "overallScore": 69
+    },
+    {
+      "path": "benchmarks/segments/data/C_micro",
+      "type": "segment",
+      "id": "C_micro",
+      "sector": "C",
+      "companySize": "micro",
+      "overallScore": 32
+    },
+    {
+      "path": "benchmarks/segments/data/C_small",
+      "type": "segment",
+      "id": "C_small",
+      "sector": "C",
+      "companySize": "small",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/segments/data/C_medium",
+      "type": "segment",
+      "id": "C_medium",
+      "sector": "C",
+      "companySize": "medium",
+      "overallScore": 58
+    },
+    {
+      "path": "benchmarks/segments/data/C_large",
+      "type": "segment",
+      "id": "C_large",
+      "sector": "C",
+      "companySize": "large",
+      "overallScore": 71
+    },
+    {
+      "path": "benchmarks/segments/data/D_micro",
+      "type": "segment",
+      "id": "D_micro",
+      "sector": "D",
+      "companySize": "micro",
+      "overallScore": 32
+    },
+    {
+      "path": "benchmarks/segments/data/D_small",
+      "type": "segment",
+      "id": "D_small",
+      "sector": "D",
+      "companySize": "small",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/segments/data/D_medium",
+      "type": "segment",
+      "id": "D_medium",
+      "sector": "D",
+      "companySize": "medium",
+      "overallScore": 58
+    },
+    {
+      "path": "benchmarks/segments/data/D_large",
+      "type": "segment",
+      "id": "D_large",
+      "sector": "D",
+      "companySize": "large",
+      "overallScore": 71
+    },
+    {
+      "path": "benchmarks/segments/data/E_micro",
+      "type": "segment",
+      "id": "E_micro",
+      "sector": "E",
+      "companySize": "micro",
+      "overallScore": 32
+    },
+    {
+      "path": "benchmarks/segments/data/E_small",
+      "type": "segment",
+      "id": "E_small",
+      "sector": "E",
+      "companySize": "small",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/segments/data/E_medium",
+      "type": "segment",
+      "id": "E_medium",
+      "sector": "E",
+      "companySize": "medium",
+      "overallScore": 58
+    },
+    {
+      "path": "benchmarks/segments/data/E_large",
+      "type": "segment",
+      "id": "E_large",
+      "sector": "E",
+      "companySize": "large",
+      "overallScore": 71
+    },
+    {
+      "path": "benchmarks/segments/data/F_micro",
+      "type": "segment",
+      "id": "F_micro",
+      "sector": "F",
+      "companySize": "micro",
+      "overallScore": 30
+    },
+    {
+      "path": "benchmarks/segments/data/F_small",
+      "type": "segment",
+      "id": "F_small",
+      "sector": "F",
+      "companySize": "small",
+      "overallScore": 49
+    },
+    {
+      "path": "benchmarks/segments/data/F_medium",
+      "type": "segment",
+      "id": "F_medium",
+      "sector": "F",
+      "companySize": "medium",
+      "overallScore": 53
+    },
+    {
+      "path": "benchmarks/segments/data/F_large",
+      "type": "segment",
+      "id": "F_large",
+      "sector": "F",
+      "companySize": "large",
+      "overallScore": 61
+    },
+    {
+      "path": "benchmarks/segments/data/G_micro",
+      "type": "segment",
+      "id": "G_micro",
+      "sector": "G",
+      "companySize": "micro",
+      "overallScore": 36
+    },
+    {
+      "path": "benchmarks/segments/data/G_small",
+      "type": "segment",
+      "id": "G_small",
+      "sector": "G",
+      "companySize": "small",
+      "overallScore": 60
+    },
+    {
+      "path": "benchmarks/segments/data/G_medium",
+      "type": "segment",
+      "id": "G_medium",
+      "sector": "G",
+      "companySize": "medium",
+      "overallScore": 70
+    },
+    {
+      "path": "benchmarks/segments/data/G_large",
+      "type": "segment",
+      "id": "G_large",
+      "sector": "G",
+      "companySize": "large",
+      "overallScore": 76
+    },
+    {
+      "path": "benchmarks/segments/data/H_micro",
+      "type": "segment",
+      "id": "H_micro",
+      "sector": "H",
+      "companySize": "micro",
+      "overallScore": 29
+    },
+    {
+      "path": "benchmarks/segments/data/H_small",
+      "type": "segment",
+      "id": "H_small",
+      "sector": "H",
+      "companySize": "small",
+      "overallScore": 49
+    },
+    {
+      "path": "benchmarks/segments/data/H_medium",
+      "type": "segment",
+      "id": "H_medium",
+      "sector": "H",
+      "companySize": "medium",
+      "overallScore": 56
+    },
+    {
+      "path": "benchmarks/segments/data/H_large",
+      "type": "segment",
+      "id": "H_large",
+      "sector": "H",
+      "companySize": "large",
+      "overallScore": 69
+    },
+    {
+      "path": "benchmarks/segments/data/I_micro",
+      "type": "segment",
+      "id": "I_micro",
+      "sector": "I",
+      "companySize": "micro",
+      "overallScore": 31
+    },
+    {
+      "path": "benchmarks/segments/data/I_small",
+      "type": "segment",
+      "id": "I_small",
+      "sector": "I",
+      "companySize": "small",
+      "overallScore": 51
+    },
+    {
+      "path": "benchmarks/segments/data/I_medium",
+      "type": "segment",
+      "id": "I_medium",
+      "sector": "I",
+      "companySize": "medium",
+      "overallScore": 68
+    },
+    {
+      "path": "benchmarks/segments/data/I_large",
+      "type": "segment",
+      "id": "I_large",
+      "sector": "I",
+      "companySize": "large",
+      "overallScore": 76
+    },
+    {
+      "path": "benchmarks/segments/data/J_micro",
+      "type": "segment",
+      "id": "J_micro",
+      "sector": "J",
+      "companySize": "micro",
+      "overallScore": 42
+    },
+    {
+      "path": "benchmarks/segments/data/J_small",
+      "type": "segment",
+      "id": "J_small",
+      "sector": "J",
+      "companySize": "small",
+      "overallScore": 70
+    },
+    {
+      "path": "benchmarks/segments/data/J_medium",
+      "type": "segment",
+      "id": "J_medium",
+      "sector": "J",
+      "companySize": "medium",
+      "overallScore": 74
+    },
+    {
+      "path": "benchmarks/segments/data/J_large",
+      "type": "segment",
+      "id": "J_large",
+      "sector": "J",
+      "companySize": "large",
+      "overallScore": 76
+    },
+    {
+      "path": "benchmarks/segments/data/K_micro",
+      "type": "segment",
+      "id": "K_micro",
+      "sector": "K",
+      "companySize": "micro",
+      "overallScore": 16
+    },
+    {
+      "path": "benchmarks/segments/data/K_small",
+      "type": "segment",
+      "id": "K_small",
+      "sector": "K",
+      "companySize": "small",
+      "overallScore": 27
+    },
+    {
+      "path": "benchmarks/segments/data/K_medium",
+      "type": "segment",
+      "id": "K_medium",
+      "sector": "K",
+      "companySize": "medium",
+      "overallScore": 29
+    },
+    {
+      "path": "benchmarks/segments/data/K_large",
+      "type": "segment",
+      "id": "K_large",
+      "sector": "K",
+      "companySize": "large",
+      "overallScore": 28
+    },
+    {
+      "path": "benchmarks/segments/data/L_micro",
+      "type": "segment",
+      "id": "L_micro",
+      "sector": "L",
+      "companySize": "micro",
+      "overallScore": 12
+    },
+    {
+      "path": "benchmarks/segments/data/L_small",
+      "type": "segment",
+      "id": "L_small",
+      "sector": "L",
+      "companySize": "small",
+      "overallScore": 20
+    },
+    {
+      "path": "benchmarks/segments/data/L_medium",
+      "type": "segment",
+      "id": "L_medium",
+      "sector": "L",
+      "companySize": "medium",
+      "overallScore": 21
+    },
+    {
+      "path": "benchmarks/segments/data/L_large",
+      "type": "segment",
+      "id": "L_large",
+      "sector": "L",
+      "companySize": "large",
+      "overallScore": 24
+    },
+    {
+      "path": "benchmarks/segments/data/M_micro",
+      "type": "segment",
+      "id": "M_micro",
+      "sector": "M",
+      "companySize": "micro",
+      "overallScore": 29
+    },
+    {
+      "path": "benchmarks/segments/data/M_small",
+      "type": "segment",
+      "id": "M_small",
+      "sector": "M",
+      "companySize": "small",
+      "overallScore": 48
+    },
+    {
+      "path": "benchmarks/segments/data/M_medium",
+      "type": "segment",
+      "id": "M_medium",
+      "sector": "M",
+      "companySize": "medium",
+      "overallScore": 50
+    },
+    {
+      "path": "benchmarks/segments/data/M_large",
+      "type": "segment",
+      "id": "M_large",
+      "sector": "M",
+      "companySize": "large",
+      "overallScore": 51
+    },
+    {
+      "path": "benchmarks/segments/data/N_micro",
+      "type": "segment",
+      "id": "N_micro",
+      "sector": "N",
+      "companySize": "micro",
+      "overallScore": 29
+    },
+    {
+      "path": "benchmarks/segments/data/N_small",
+      "type": "segment",
+      "id": "N_small",
+      "sector": "N",
+      "companySize": "small",
+      "overallScore": 48
+    },
+    {
+      "path": "benchmarks/segments/data/N_medium",
+      "type": "segment",
+      "id": "N_medium",
+      "sector": "N",
+      "companySize": "medium",
+      "overallScore": 50
+    },
+    {
+      "path": "benchmarks/segments/data/N_large",
+      "type": "segment",
+      "id": "N_large",
+      "sector": "N",
+      "companySize": "large",
+      "overallScore": 51
+    },
+    {
+      "path": "benchmarks/segments/data/O_micro",
+      "type": "segment",
+      "id": "O_micro",
+      "sector": "O",
+      "companySize": "micro",
+      "overallScore": 33
+    },
+    {
+      "path": "benchmarks/segments/data/O_small",
+      "type": "segment",
+      "id": "O_small",
+      "sector": "O",
+      "companySize": "small",
+      "overallScore": 54
+    },
+    {
+      "path": "benchmarks/segments/data/O_medium",
+      "type": "segment",
+      "id": "O_medium",
+      "sector": "O",
+      "companySize": "medium",
+      "overallScore": 61
+    },
+    {
+      "path": "benchmarks/segments/data/O_large",
+      "type": "segment",
+      "id": "O_large",
+      "sector": "O",
+      "companySize": "large",
+      "overallScore": 69
+    },
+    {
+      "path": "benchmarks/segments/data/P_micro",
+      "type": "segment",
+      "id": "P_micro",
+      "sector": "P",
+      "companySize": "micro",
+      "overallScore": 33
+    },
+    {
+      "path": "benchmarks/segments/data/P_small",
+      "type": "segment",
+      "id": "P_small",
+      "sector": "P",
+      "companySize": "small",
+      "overallScore": 54
+    },
+    {
+      "path": "benchmarks/segments/data/P_medium",
+      "type": "segment",
+      "id": "P_medium",
+      "sector": "P",
+      "companySize": "medium",
+      "overallScore": 61
+    },
+    {
+      "path": "benchmarks/segments/data/P_large",
+      "type": "segment",
+      "id": "P_large",
+      "sector": "P",
+      "companySize": "large",
+      "overallScore": 69
+    },
+    {
+      "path": "benchmarks/segments/data/Q_micro",
+      "type": "segment",
+      "id": "Q_micro",
+      "sector": "Q",
+      "companySize": "micro",
+      "overallScore": 33
+    },
+    {
+      "path": "benchmarks/segments/data/Q_small",
+      "type": "segment",
+      "id": "Q_small",
+      "sector": "Q",
+      "companySize": "small",
+      "overallScore": 54
+    },
+    {
+      "path": "benchmarks/segments/data/Q_medium",
+      "type": "segment",
+      "id": "Q_medium",
+      "sector": "Q",
+      "companySize": "medium",
+      "overallScore": 61
+    },
+    {
+      "path": "benchmarks/segments/data/Q_large",
+      "type": "segment",
+      "id": "Q_large",
+      "sector": "Q",
+      "companySize": "large",
+      "overallScore": 69
+    },
+    {
+      "path": "benchmarks/segments/data/R_micro",
+      "type": "segment",
+      "id": "R_micro",
+      "sector": "R",
+      "companySize": "micro",
+      "overallScore": 12
+    },
+    {
+      "path": "benchmarks/segments/data/R_small",
+      "type": "segment",
+      "id": "R_small",
+      "sector": "R",
+      "companySize": "small",
+      "overallScore": 20
+    },
+    {
+      "path": "benchmarks/segments/data/R_medium",
+      "type": "segment",
+      "id": "R_medium",
+      "sector": "R",
+      "companySize": "medium",
+      "overallScore": 21
+    },
+    {
+      "path": "benchmarks/segments/data/R_large",
+      "type": "segment",
+      "id": "R_large",
+      "sector": "R",
+      "companySize": "large",
+      "overallScore": 24
+    },
+    {
+      "path": "benchmarks/segments/data/S_micro",
+      "type": "segment",
+      "id": "S_micro",
+      "sector": "S",
+      "companySize": "micro",
+      "overallScore": 12
+    },
+    {
+      "path": "benchmarks/segments/data/S_small",
+      "type": "segment",
+      "id": "S_small",
+      "sector": "S",
+      "companySize": "small",
+      "overallScore": 20
+    },
+    {
+      "path": "benchmarks/segments/data/S_medium",
+      "type": "segment",
+      "id": "S_medium",
+      "sector": "S",
+      "companySize": "medium",
+      "overallScore": 21
+    },
+    {
+      "path": "benchmarks/segments/data/S_large",
+      "type": "segment",
+      "id": "S_large",
+      "sector": "S",
+      "companySize": "large",
+      "overallScore": 24
+    },
+    {
+      "path": "benchmarks/segments/data/T_micro",
+      "type": "segment",
+      "id": "T_micro",
+      "sector": "T",
+      "companySize": "micro",
+      "overallScore": 33
+    },
+    {
+      "path": "benchmarks/segments/data/T_small",
+      "type": "segment",
+      "id": "T_small",
+      "sector": "T",
+      "companySize": "small",
+      "overallScore": 54
+    },
+    {
+      "path": "benchmarks/segments/data/T_medium",
+      "type": "segment",
+      "id": "T_medium",
+      "sector": "T",
+      "companySize": "medium",
+      "overallScore": 61
+    },
+    {
+      "path": "benchmarks/segments/data/T_large",
+      "type": "segment",
+      "id": "T_large",
+      "sector": "T",
+      "companySize": "large",
+      "overallScore": 69
+    },
+    {
+      "path": "benchmarks/segments/data/U_micro",
+      "type": "segment",
+      "id": "U_micro",
+      "sector": "U",
+      "companySize": "micro",
+      "overallScore": 33
+    },
+    {
+      "path": "benchmarks/segments/data/U_small",
+      "type": "segment",
+      "id": "U_small",
+      "sector": "U",
+      "companySize": "small",
+      "overallScore": 54
+    },
+    {
+      "path": "benchmarks/segments/data/U_medium",
+      "type": "segment",
+      "id": "U_medium",
+      "sector": "U",
+      "companySize": "medium",
+      "overallScore": 61
+    },
+    {
+      "path": "benchmarks/segments/data/U_large",
+      "type": "segment",
+      "id": "U_large",
+      "sector": "U",
+      "companySize": "large",
+      "overallScore": 69
+    }
+  ]
+}

@@ -1,13 +1,21 @@
 /**
  * Legacy API Bridge - Backward compatibility during transition
- * 
- * GET /api/dma/results?respondentId={id}
- * 
+ *
+ * GET /api/dma/results?respondentId={id}&token={retrievalToken}
+ *
  * TODO: Remove this after frontend is migrated to /api/surveys/{id}/results?token={token}
+ *
+ * Firebase Storage-fallbacken er fjernet sammen med Firebase. Den leste
+ * gamle /surveys/{id}.json-filer fra en enda eldre datamodell; de dataene
+ * er ikke migrert til Postgres.
+ *
+ * Autorisering er påkrevd (innført i 936890f): uten den kunne hvem som helst
+ * med en survey-ID lese resultatene. IDen alene er ikke en hemmelighet — den
+ * står i URL-er og blir delt.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminFirestore } from '@/lib/firebase-admin';
+import { getSurvey } from '@/lib/db';
 import { verifyToken } from '@/lib/token-utils';
 
 export async function GET(request: NextRequest) {
@@ -17,137 +25,69 @@ export async function GET(request: NextRequest) {
 
   if (!respondentId) {
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Missing respondentId parameter'
-      },
+      { success: false, error: 'Missing respondentId parameter' },
       { status: 400 }
     );
   }
 
   if (!token) {
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Missing token parameter'
-      },
+      { success: false, error: 'Missing token parameter' },
       { status: 401 }
     );
   }
 
-  console.log(`🔄 Legacy API called for survey: ${respondentId}`);
-
   try {
-    // Try the new Firestore schema first
-    const db = getAdminFirestore();
-    const surveyDoc = await db.collection('surveys').doc(respondentId).get();
+    const survey = await getSurvey(respondentId);
 
-    if (surveyDoc.exists) {
-      const survey = surveyDoc.data();
-
-      // Authorize: verify retrieval token against stored hash. Reject revoked tokens.
-      if (
-        survey?.retrieval?.revoked ||
-        !survey?.retrieval?.tokenHash ||
-        !verifyToken(token, survey.retrieval.tokenHash)
-      ) {
-        return NextResponse.json(
-          { success: false, error: 'Invalid or revoked token' },
-          { status: 401 }
-        );
-      }
-
-      // Check if survey has results in new schema
-      if (survey?.flags?.hasResults) {
-        const resultsDoc = await db.collection('surveys').doc(respondentId)
-          .collection('results').doc('public').get();
-          
-        if (resultsDoc.exists) {
-          const results = resultsDoc.data();
-          
-          if (!results) {
-            console.log(`⚠️ Results document empty: ${respondentId}`);
-            return NextResponse.json(
-              { success: false, error: 'Results not available' }, 
-              { status: 404 }
-            );
-          }
-          
-          // Convert new schema to legacy format
-          const legacyResponse = {
-            success: true,
-            data: {
-              survey: {
-                id: survey.id,
-                version: survey.surveyVersion,
-                language: survey.language,
-                timestamp: survey.createdAt,
-                scores: {
-                  dimensions: results.dimensions,
-                  overall: results.overall,
-                  maturityClassification: results.maturityClassification,
-                },
-                userDetails: survey.flags.hasExpandedAccess ? {
-                  email: '[REDACTED]', // Don't expose email in legacy API
-                  companyName: survey.companyDetails?.companyName,
-                  sector: survey.companyDetails?.sector,
-                  companySize: survey.companyDetails?.companySize,
-                  region: survey.companyDetails?.region,
-                } : null,
-                hasExpandedAccess: survey.flags.hasExpandedAccess,
-              }
-            }
-          };
-          
-          console.log(`✅ Served survey from new schema: ${respondentId}`);
-          return NextResponse.json(legacyResponse);
-        }
-      }
-      
-      // Survey exists but no results yet
-      console.log(`⏳ Survey found but no results yet: ${respondentId}`);
+    if (!survey || !survey.scores) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Survey not completed or results not available' 
-        }, 
+        { success: false, error: 'Survey not completed or results not available' },
         { status: 404 }
       );
     }
-    
-    // Legacy Firebase Storage fallback removed: those records have no
-    // retrieval-token hash so they cannot be authorized. Treat as not found.
-    console.log(`❌ Survey not found in Firestore (legacy Storage fallback disabled): ${respondentId}`);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Survey not found'
+
+    // Authorize: verify retrieval token against stored hash. Reject revoked tokens.
+    if (survey.token_revoked || !verifyToken(token, survey.token_hash)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or revoked token' },
+        { status: 403 }
+      );
+    }
+
+    const hasExpandedAccess = survey.upgraded_at !== null;
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        survey: {
+          id: survey.id,
+          version: survey.survey_version,
+          language: survey.language,
+          timestamp: survey.created_at.toISOString(),
+          scores: {
+            dimensions: survey.scores.dimensions,
+            overall: survey.scores.overall,
+            maturityClassification: survey.scores.maturityClassification,
+          },
+          userDetails: hasExpandedAccess
+            ? {
+                email: '[REDACTED]', // Don't expose email in legacy API
+                companyName: survey.company_name,
+                sector: survey.sector,
+                companySize: survey.company_size,
+                region: survey.region,
+              }
+            : null,
+          hasExpandedAccess,
+        },
       },
-      { status: 404 }
-    );
-    
+    });
   } catch (error) {
     console.error('Legacy API error:', error);
-    
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
-      }, 
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
-}
-
-// OPTIONS handler for CORS
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
 }

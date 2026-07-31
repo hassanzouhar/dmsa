@@ -97,10 +97,21 @@ const BENCHMARK_DATABASE: Record<string, BenchmarkData> = {
   }
 };
 
+// The specific distribution a comparison was computed against — either one
+// dimension's numbers or the overall numbers. Charts must render THIS, not
+// `benchmark.overall`, or the bar and the surrounding figures disagree.
+export interface BenchmarkReference {
+  average: number;
+  median: number;
+  top25: number;
+  top10: number;
+}
+
 // Performance comparison result
 export interface ComparisonResult {
   userScore: number;
   benchmark: BenchmarkData;
+  reference: BenchmarkReference;
   percentile: number; // User's percentile rank (0-100)
   performanceLevel: 'below_average' | 'average' | 'above_average' | 'top_quartile' | 'top_decile';
   gap: number; // Gap to average (positive = above, negative = below)
@@ -158,30 +169,34 @@ const DIMENSION_MAPPING: Record<string, string> = {
 };
 
 /**
- * Compare user score against benchmark data
+ * Compare user score against benchmark data.
+ *
+ * Returns `null` when the dimension has no benchmark entry — callers skip it.
+ * Throwing here used to take down the whole results page, since the benchmark
+ * section is rendered inline rather than behind an error boundary.
  */
 export const compareScore = (
   userScore: number,
   benchmarkData: BenchmarkData,
   dimension?: string
-): ComparisonResult => {
+): ComparisonResult | null => {
   let benchmarkKey = dimension;
-  
+
   // Map dimension ID to benchmark key if needed
   if (dimension && DIMENSION_MAPPING[dimension]) {
     benchmarkKey = DIMENSION_MAPPING[dimension];
   }
-  
-  const benchmark = benchmarkKey 
-    ? benchmarkData.dimensions[benchmarkKey] 
+
+  const benchmark = benchmarkKey
+    ? benchmarkData.dimensions[benchmarkKey]
     : benchmarkData.overall;
-  
+
   if (!benchmark) {
     console.warn(`Benchmark data not found for dimension: ${dimension} (mapped to: ${benchmarkKey})`);
     console.warn(`Available dimensions:`, Object.keys(benchmarkData.dimensions));
-    throw new Error(`Benchmark data not found for dimension: ${dimension}`);
+    return null;
   }
-  
+
   // Calculate percentile rank (approximate)
   let percentile: number;
   let performanceLevel: ComparisonResult['performanceLevel'];
@@ -229,6 +244,7 @@ export const compareScore = (
   return {
     userScore,
     benchmark: benchmarkData,
+    reference: benchmark,
     percentile,
     performanceLevel,
     gap: Math.round(gap),
@@ -237,54 +253,70 @@ export const compareScore = (
   };
 };
 
+export interface BenchmarkInsights {
+  strongest: { dimension: string; comparison: ComparisonResult };
+  weakest: { dimension: string; comparison: ComparisonResult };
+}
+
+export interface BenchmarkComparison {
+  overall: ComparisonResult | null;
+  dimensions: Record<string, ComparisonResult>;
+  benchmarkData: BenchmarkData;
+  /** `null` when no dimension could be compared (e.g. an empty score map). */
+  insights: BenchmarkInsights | null;
+  summary: {
+    aboveAverageCount: number;
+    belowAverageCount: number;
+    topQuartileCount: number;
+  };
+}
+
 /**
  * Generate comprehensive benchmark comparison for a survey
  */
-export const generateBenchmarkComparison = (surveyData: SurveySubmission) => {
+export const generateBenchmarkComparison = (surveyData: SurveySubmission): BenchmarkComparison => {
   const benchmarkData = getBenchmarkData(
     surveyData.userDetails?.sector,
     surveyData.userDetails?.companySize
   );
-  
+
   // Overall comparison
   const overallComparison = compareScore(
     surveyData.scores.overall,
     benchmarkData
   );
-  
-  // Dimension comparisons
+
+  // Dimension comparisons — dimensions without a benchmark entry are skipped
   const dimensionComparisons: Record<string, ComparisonResult> = {};
   Object.entries(surveyData.scores.dimensions).forEach(([dimensionId, dimension]) => {
-    dimensionComparisons[dimensionId] = compareScore(
-      dimension.score,
-      benchmarkData,
-      dimensionId
-    );
+    const comparison = compareScore(dimension.score, benchmarkData, dimensionId);
+    if (comparison) {
+      dimensionComparisons[dimensionId] = comparison;
+    }
   });
-  
+
   // Find strongest and weakest dimensions relative to benchmark
   const dimensionEntries = Object.entries(dimensionComparisons);
-  const strongestDimension = dimensionEntries.reduce((prev, curr) => 
-    curr[1].gap > prev[1].gap ? curr : prev
-  );
-  const weakestDimension = dimensionEntries.reduce((prev, curr) => 
-    curr[1].gap < prev[1].gap ? curr : prev
-  );
-  
+  const insights: BenchmarkInsights | null = dimensionEntries.length > 0
+    ? (() => {
+        const strongest = dimensionEntries.reduce((prev, curr) =>
+          curr[1].gap > prev[1].gap ? curr : prev
+        );
+        const weakest = dimensionEntries.reduce((prev, curr) =>
+          curr[1].gap < prev[1].gap ? curr : prev
+        );
+        return {
+          strongest: { dimension: strongest[0], comparison: strongest[1] },
+          weakest: { dimension: weakest[0], comparison: weakest[1] }
+        };
+      })()
+    : null;
+
   return {
     overall: overallComparison,
     dimensions: dimensionComparisons,
     benchmarkData,
-    insights: {
-      strongest: {
-        dimension: strongestDimension[0],
-        comparison: strongestDimension[1]
-      },
-      weakest: {
-        dimension: weakestDimension[0],
-        comparison: weakestDimension[1]
-      }
-    },
+    insights,
     summary: {
       aboveAverageCount: dimensionEntries.filter(([, comp]) => comp.gap > 0).length,
       belowAverageCount: dimensionEntries.filter(([, comp]) => comp.gap < 0).length,

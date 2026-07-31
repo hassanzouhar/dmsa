@@ -5,8 +5,7 @@
  * from completed surveys in Firestore.
  */
 
-import { getAdminFirestore } from './firebase-admin';
-import { SurveyDocument } from '@/types/firestore-schema';
+import { listCompletedSurveys, sql, type SurveyRow } from './db';
 import { getCountyName } from '@/data/norwegian-counties';
 import { getCountryDisplayName } from '@/data/countries';
 
@@ -107,79 +106,54 @@ export async function getLeaderboardEntries(options: {
   county?: string;
   limit?: number;
 } = {}): Promise<LeaderboardEntry[]> {
-  const db = getAdminFirestore();
-  let query = db.collection('surveys')
-    .where('flags.isCompleted', '==', true)
-    .where('flags.hasResults', '==', true);
-
-  // Filter by sector if specified
-  if (options.sector && options.sector !== 'all') {
-    query = query.where('companyDetails.sector', '==', options.sector);
-  }
-
-  // Filter by size if specified
-  if (options.size && options.size !== 'all') {
-    query = query.where('companyDetails.companySize', '==', options.size);
-  }
-
-  // Limit results
-  if (options.limit) {
-    query = query.limit(options.limit);
-  }
-
-  const snapshot = await query.get();
+  const rows = await listCompletedSurveys({
+    sector: options.sector && options.sector !== 'all' ? options.sector : undefined,
+    companySize: options.size && options.size !== 'all' ? options.size : undefined,
+    limit: options.limit,
+  });
 
   const entries: LeaderboardEntry[] = [];
 
-  snapshot.forEach(doc => {
-    const survey = doc.data() as SurveyDocument;
+  for (const survey of rows) {
+    if (!survey.scores) continue;
 
-    // Skip surveys without scores
-    if (!survey.scores) return;
+    // `region` er sammensatt ('NO-03'), så land/fylke må filtreres etter
+    // parsing — det lar seg ikke uttrykke som en enkel WHERE-klausul.
+    const { countryCode, countyCode } = parseRegion(survey.region);
 
-    // Only include surveys that have opted in to leaderboard (default is true)
-    if (survey.flags?.includeInLeaderboard === false) {
-      return;
-    }
-
-    const { companyDetails } = survey;
-
-    const { countryCode, countyCode } = parseRegion(companyDetails.region);
-
-    // Apply country/county filters after fetching
     if (options.country && options.country !== 'all' && countryCode !== options.country) {
-      return;
+      continue;
     }
     if (options.county && options.county !== 'all' && countyCode !== options.county) {
-      return;
+      continue;
     }
 
-    const entry: LeaderboardEntry = {
+    const dims = survey.scores.dimensions;
+
+    entries.push({
       id: survey.id,
       displayName: generateAnonymousAlias(survey.id),
-      industry: companyDetails.nace,
-      industryLabel: SECTOR_LABELS[companyDetails.sector]?.label || companyDetails.sector,
-      sector: companyDetails.sector,
-      size: companyDetails.companySize,
-      region: companyDetails.region,
+      industry: survey.nace,
+      industryLabel: SECTOR_LABELS[survey.sector]?.label || survey.sector,
+      sector: survey.sector,
+      size: survey.company_size,
+      region: survey.region,
       countryCode,
       countryName: getCountryDisplayName(countryCode) || countryCode,
       countyCode,
       countyName: getCountyName(countyCode),
       overallScore: survey.scores.overall / 10, // Convert 0-100 to 0-10 scale
       dimensionScores: {
-        digitalStrategy: (survey.scores.dimensions.digitalStrategy?.score || 0) / 10,
-        digitalReadiness: (survey.scores.dimensions.digitalReadiness?.score || 0) / 10,
-        humanCentric: (survey.scores.dimensions.humanCentric?.score || 0) / 10,
-        dataManagement: (survey.scores.dimensions.dataManagement?.score || 0) / 10,
-        automation: (survey.scores.dimensions.automation?.score || 0) / 10,
-        greenDigitalization: (survey.scores.dimensions.greenDigitalization?.score || 0) / 10,
+        digitalStrategy: (dims.digitalStrategy?.score || 0) / 10,
+        digitalReadiness: (dims.digitalReadiness?.score || 0) / 10,
+        humanCentric: (dims.humanCentric?.score || 0) / 10,
+        dataManagement: (dims.dataManagement?.score || 0) / 10,
+        automation: (dims.automation?.score || 0) / 10,
+        greenDigitalization: (dims.greenDigitalization?.score || 0) / 10,
       },
-      completedAt: survey.completedAt || survey.createdAt,
-    };
-
-    entries.push(entry);
-  });
+      completedAt: (survey.completed_at ?? survey.created_at).toISOString(),
+    });
+  }
 
   // Sort by overall score descending
   entries.sort((a, b) => b.overallScore - a.overallScore);
@@ -261,26 +235,15 @@ const parseRegion = (region?: string): { countryCode?: string; countyCode?: stri
  * Calculate industry benchmarks from all completed surveys
  */
 export async function getIndustryBenchmarks(minSampleSize: number = 3): Promise<IndustryBenchmark[]> {
-  const db = getAdminFirestore();
-
-  const snapshot = await db.collection('surveys')
-    .where('flags.isCompleted', '==', true)
-    .where('flags.hasResults', '==', true)
-    .get();
+  const rows = await listCompletedSurveys();
 
   // Group by sector
-  const sectorGroups: Record<string, SurveyDocument[]> = {};
+  const sectorGroups: Record<string, SurveyRow[]> = {};
 
-  snapshot.forEach(doc => {
-    const survey = doc.data() as SurveyDocument;
-    if (!survey.scores) return;
-
-    const sector = survey.companyDetails.sector;
-    if (!sectorGroups[sector]) {
-      sectorGroups[sector] = [];
-    }
-    sectorGroups[sector].push(survey);
-  });
+  for (const survey of rows) {
+    if (!survey.scores) continue;
+    (sectorGroups[survey.sector] ??= []).push(survey);
+  }
 
   // Calculate averages for each sector
   const benchmarks: IndustryBenchmark[] = [];
@@ -353,43 +316,30 @@ export interface SurveyStats {
  * Aggregated survey stats for social proof and hero section
  */
 export async function getSurveyStats(): Promise<SurveyStats> {
-  const db = getAdminFirestore();
-
-  const snapshot = await db.collection('surveys')
-    .where('flags.isCompleted', '==', true)
-    .where('flags.hasResults', '==', true)
-    .get();
-
-  const regions = new Set<string>();
-  const sectors = new Set<string>();
-  let totalScore = 0;
-  let completedCount = 0;
-
-  snapshot.forEach((doc) => {
-    const survey = doc.data() as SurveyDocument;
-    if (!survey.scores) return;
-
-    completedCount += 1;
-    totalScore += survey.scores.overall || 0;
-
-    const region = survey.companyDetails.region;
-    if (region) {
-      regions.add(region);
-    }
-
-    const sector = survey.companyDetails.sector;
-    if (sector) {
-      sectors.add(sector);
-    }
-  });
-
-  const averageScore = completedCount > 0 ? Number((totalScore / completedCount).toFixed(1)) : 0;
+  // Aggregeringen gjøres i databasen — dette er ren telling, og trenger
+  // ikke at radene hentes ned.
+  const [row] = await sql<{
+    count: string;
+    region_count: string;
+    sector_count: string;
+    avg_score: string | null;
+  }[]>`
+    select
+      count(*)                     as count,
+      count(distinct region)       as region_count,
+      count(distinct sector)       as sector_count,
+      avg(overall_score)           as avg_score
+    from surveys
+    where completed_at is not null
+      and scores is not null
+      and include_in_leaderboard
+  `;
 
   return {
-    count: completedCount,
-    regionCount: regions.size,
-    sectorCount: sectors.size,
-    averageScore,
+    count: Number(row?.count ?? 0),
+    regionCount: Number(row?.region_count ?? 0),
+    sectorCount: Number(row?.sector_count ?? 0),
+    averageScore: row?.avg_score ? Number(Number(row.avg_score).toFixed(1)) : 0,
   };
 }
 

@@ -5,14 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminFirestore } from '@/lib/firebase-admin';
+import { getSurvey, completeSurvey, setAnonymous, type Scores } from '@/lib/db';
 import { verifyToken, checkRateLimit } from '@/lib/token-utils';
-import { 
-  SurveyDocument,
-  PublicResultsDocument,
-  AnswersDocument,
-  ApiError,
-} from '@/types/firestore-schema';
+import type { ApiError } from '@/types/survey';
 
 export async function POST(
   request: NextRequest,
@@ -91,13 +86,9 @@ export async function POST(
       );
     }
 
-    // Initialize Admin SDK
-    const db = getAdminFirestore();
-    
-    // Get survey document
-    const surveyDoc = await db.collection('surveys').doc(surveyId).get();
-    
-    if (!surveyDoc.exists) {
+    const survey = await getSurvey(surveyId);
+
+    if (!survey) {
       return NextResponse.json(
         {
           success: false,
@@ -110,10 +101,8 @@ export async function POST(
       );
     }
 
-    const survey = surveyDoc.data() as SurveyDocument;
-    
     // Check if token is revoked
-    if (survey.retrieval.revoked) {
+    if (survey.token_revoked) {
       return NextResponse.json(
         {
           success: false,
@@ -127,7 +116,7 @@ export async function POST(
     }
     
     // Verify token
-    if (!verifyToken(token, survey.retrieval.tokenHash)) {
+    if (!verifyToken(token, survey.token_hash)) {
       return NextResponse.json(
         {
           success: false,
@@ -140,8 +129,22 @@ export async function POST(
       );
     }
 
-    // Check if survey is already completed
-    if (survey.flags.isCompleted) {
+    const scores: Scores = {
+      dimensions: results.dimensions,
+      overall: results.overall,
+      maturityClassification: results.maturityClassification,
+    };
+
+    // Betingelsen `completed_at is null` ligger i UPDATE-en, så to samtidige
+    // kall kan ikke begge lykkes. null her betyr allerede fullført.
+    const completedAt = await completeSurvey({
+      id: surveyId,
+      answers,
+      scores,
+      isAnonymous: isAnonymous || false,
+    });
+
+    if (!completedAt) {
       return NextResponse.json(
         {
           success: false,
@@ -154,68 +157,6 @@ export async function POST(
       );
     }
 
-    // Prepare completion data
-    const completedAt = new Date().toISOString();
-    const publicResults: PublicResultsDocument = {
-      dimensions: results.dimensions,
-      overall: results.overall,
-      maturityClassification: results.maturityClassification,
-    };
-
-    const answersDoc: AnswersDocument = {
-      answers: answers,
-    };
-
-    // Use a batch write for atomicity
-    const batch = db.batch();
-
-    // Update survey document
-    const surveyRef = db.collection('surveys').doc(surveyId);
-    batch.update(surveyRef, {
-      completedAt,
-      overallScore: results.overall,
-      scores: publicResults, // Add full scores for leaderboard queries
-      'flags.isCompleted': true,
-      'flags.hasResults': true,
-      'flags.isAnonymous': isAnonymous || false,
-    });
-
-    // Save public results
-    const resultsRef = db.collection('surveys').doc(surveyId)
-      .collection('results').doc('public');
-    batch.set(resultsRef, publicResults);
-
-    // Save answers
-    const answersRef = db.collection('surveys').doc(surveyId)
-      .collection('answers').doc('current');
-    batch.set(answersRef, answersDoc);
-
-    // Commit the batch
-    await batch.commit();
-
-    // Track completion event
-    const analyticsEvent: Record<string, unknown> = {
-      event: 'assessment_completed',
-      timestamp: new Date().toISOString(),
-      serverTimestamp: new Date(),
-      surveyId,
-      language: survey.language,
-      surveyVersion: survey.surveyVersion,
-      overallScore: results.overall,
-      maturityLevel: results.maturityClassification.level,
-      companySize: survey.companyDetails.companySize,
-      sector: survey.companyDetails.sector,
-      region: survey.companyDetails.region,
-    };
-    
-    // Only add optional fields if they have values
-    const userAgent = request.headers.get('user-agent');
-    if (userAgent) {
-      analyticsEvent.userAgent = userAgent;
-    }
-    
-    await db.collection('analytics_events').add(analyticsEvent);
-
     console.log(`✅ Survey completed: ${surveyId} (Score: ${results.overall}/100)`);
 
     return NextResponse.json(
@@ -223,7 +164,7 @@ export async function POST(
         success: true,
         data: {
           surveyId,
-          completedAt,
+          completedAt: completedAt.toISOString(),
           overallScore: results.overall,
         }
       },
@@ -306,13 +247,9 @@ export async function PATCH(
       );
     }
 
-    // Get Firestore instance
-    const db = getAdminFirestore();
+    const survey = await getSurvey(surveyId);
 
-    // Get survey document
-    const surveyDoc = await db.collection('surveys').doc(surveyId).get();
-
-    if (!surveyDoc.exists) {
+    if (!survey) {
       return NextResponse.json(
         {
           success: false,
@@ -325,10 +262,8 @@ export async function PATCH(
       );
     }
 
-    const survey = surveyDoc.data() as SurveyDocument;
-
     // Verify token
-    if (!verifyToken(token, survey.retrieval.tokenHash)) {
+    if (!verifyToken(token, survey.token_hash)) {
       return NextResponse.json(
         {
           success: false,
@@ -341,10 +276,7 @@ export async function PATCH(
       );
     }
 
-    // Update anonymous flag
-    await db.collection('surveys').doc(surveyId).update({
-      'flags.isAnonymous': isAnonymous
-    });
+    await setAnonymous(surveyId, isAnonymous);
 
     console.log(`✅ Survey anonymous flag updated: ${surveyId} (isAnonymous: ${isAnonymous})`);
 

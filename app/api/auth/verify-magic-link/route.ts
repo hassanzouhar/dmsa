@@ -6,9 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyMagicLinkToken } from '@/lib/magic-link';
-import { getSurveysByEmail } from '@/lib/email-survey-mapping';
-import { getAdminFirestore } from '@/lib/firebase-admin';
-import { COLLECTIONS } from '@/types/firestore-schema';
+import { hashEmail, sql } from '@/lib/db';
 import { signSessionToken } from '@/lib/session-token';
 import { z } from 'zod';
 
@@ -61,8 +59,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get all survey IDs for this email
-    const surveyIds = await getSurveysByEmail(email);
+    // Hent oversikten i én spørring. Tidligere ble survey-IDene slått opp i
+    // email_surveys og deretter hentet ett dokument om gangen.
+    const surveys = await sql<{
+      id: string;
+      createdAt: Date;
+      completedAt: Date | null;
+      overallScore: number | null;
+      state: string;
+      companyName: string;
+      sector: string;
+      companySize: string;
+      language: string;
+      surveyVersion: string;
+    }[]>`
+      select
+        id,
+        created_at                                    as "createdAt",
+        completed_at                                  as "completedAt",
+        overall_score                                 as "overallScore",
+        case when upgraded_at is null then 'T0' else 'T1' end as state,
+        company_name                                  as "companyName",
+        sector,
+        company_size                                  as "companySize",
+        language,
+        survey_version                                as "surveyVersion"
+      from surveys
+      where email_hash = ${hashEmail(email)}
+      order by created_at desc
+    `;
+
+    const surveyIds = surveys.map((s) => s.id);
 
     if (surveyIds.length === 0) {
       return NextResponse.json(
@@ -78,40 +105,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch survey metadata (without retrieval tokens - those stay private)
-    const db = getAdminFirestore();
-    const surveyPromises = surveyIds.map(async (surveyId) => {
-      try {
-        const surveyDoc = await db.collection(COLLECTIONS.SURVEYS).doc(surveyId).get();
-
-        if (!surveyDoc.exists) {
-          return null;
-        }
-
-        const data = surveyDoc.data();
-        return {
-          id: surveyId,
-          createdAt: data?.createdAt,
-          completedAt: data?.completedAt,
-          overallScore: data?.overallScore,
-          state: data?.state,
-          companyName: data?.companyDetails?.companyName,
-          sector: data?.companyDetails?.sector,
-          companySize: data?.companyDetails?.companySize,
-          language: data?.language,
-          surveyVersion: data?.surveyVersion,
-        };
-      } catch (error) {
-        console.error(`Failed to fetch survey ${surveyId}:`, error);
-        return null;
-      }
-    });
-
-    const surveys = (await Promise.all(surveyPromises)).filter(
-      (s) => s !== null
-    );
-
     // Generate an HMAC-signed session token for subsequent authenticated requests.
+    // Et usignert token her ville latt hvem som helst lage en sesjon med
+    // vilkårlige surveyIds og lese andres resultater via /api/my-surveys.
     const sessionToken = signSessionToken({
       email: verification.emailHash ?? '',
       surveyIds,

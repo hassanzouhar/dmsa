@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "types": ["node", "jest"],
+    "baseUrl": "."
+  },
+  // Bevisst eksplisitt: no_bus/lib inneholder også gamle kopier av appens
+  // lib-filer (med `@/`-aliaser som ikke finnes her). Kun SSB-pipelinen og
+  // dens direkte avhengigheter typesjekkes.
+  "include": [
+    "src/**/*",
+    "tests/**/*",
+    "lib/ssb-api-client.ts",
+    "lib/ssb-mapping.ts",
+    "lib/ssb-transformer.ts",
+    "lib/firebase-admin.ts",
+    "entities/nace-sectors.ts",
+    "types/firestore-schema.ts",
+    "script/extract-ssb-benchmarks.ts",
+    "script/validate-benchmarks.ts",
+    "script/test-ssb-extraction.ts",
+    "../data/nace-sectors.ts"
+  ],
+  "exclude": ["node_modules"]
+}

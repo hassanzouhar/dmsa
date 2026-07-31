@@ -1,0 +1,43 @@
+name: Generate Benchmarks
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 1 * *' # monthly at 03:00 UTC on the 1st
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm ci || npm install
+
+      - name: Prepare backup directory
+        run: mkdir -p backups
+
+      - name: Generate all benchmarks (dry run)
+        run: npx tsx script/generate-all-benchmarks.ts --dry-run --output ./backups/benchmarks-${{ github.run_id }}.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks-${{ github.run_id }}
+          path: backups/
+
+      - name: Upload to Firestore (optional)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+        run: |
+          npx tsx script/generate-all-benchmarks.ts

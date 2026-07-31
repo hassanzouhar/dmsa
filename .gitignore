@@ -104,3 +104,13 @@ coverage/
 tmp/
 temp/
 dmsa.code-workspace
+
+# Credentials — never commit. GitHub push protection caught this once already.
+**/service-account-key*.json
+*-service-account*.json
+
+# Research archive: ~70 MB of PDFs. Kept on disk, out of git history.
+_arch/
+
+# Parallel workspace copy, not part of this project
+Digital Maturity Assessment Tool/

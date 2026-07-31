@@ -5,16 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminFirestore } from '@/lib/firebase-admin';
+import { getSurvey, toSurveyDocument } from '@/lib/db';
 import { verifyToken, checkRateLimit } from '@/lib/token-utils';
-import { 
-  SurveyResultsResponse, 
-  ApiError,
-  SurveyDocument,
-  PublicResultsDocument,
-  AnswersDocument,
-  PrivateUserDetailsDocument,
-} from '@/types/firestore-schema';
+import type { ApiError, PublicUserDetails } from '@/types/survey';
 
 export async function GET(
   request: NextRequest,
@@ -60,29 +53,26 @@ export async function GET(
       );
     }
     
-    // Initialize Admin SDK
-    const db = getAdminFirestore();
-    
-    // Get survey document
-    const surveyDoc = await db.collection('surveys').doc(surveyId).get();
-    
-    if (!surveyDoc.exists) {
+    // Én rad dekker det som tidligere var survey + 3 subcollection-oppslag.
+    const row = await getSurvey(surveyId);
+
+    if (!row) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: { 
-            error: 'Survey not found', 
-            code: 'SURVEY_NOT_FOUND' 
-          } 
+        {
+          success: false,
+          error: {
+            error: 'Survey not found',
+            code: 'SURVEY_NOT_FOUND'
+          }
         } as { success: false; error: ApiError },
         { status: 404 }
       );
     }
-    
-    const survey = surveyDoc.data() as SurveyDocument;
-    
+
+    const survey = toSurveyDocument(row);
+
     // Check if token is revoked
-    if (survey.retrieval.revoked) {
+    if (row.token_revoked) {
       return NextResponse.json(
         { 
           success: false, 
@@ -96,96 +86,44 @@ export async function GET(
     }
     
     // Verify token
-    if (!verifyToken(token, survey.retrieval.tokenHash)) {
+    if (!verifyToken(token, row.token_hash)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: { 
-            error: 'Invalid access token', 
-            code: 'INVALID_TOKEN' 
-          } 
+        {
+          success: false,
+          error: {
+            error: 'Invalid access token',
+            code: 'INVALID_TOKEN'
+          }
         } as { success: false; error: ApiError },
         { status: 403 }
       );
     }
-    
-    // Get public results (always available if survey is completed)
-    let publicResults: PublicResultsDocument | null = null;
-    if (survey.flags.hasResults) {
-      const resultsDoc = await db.collection('surveys').doc(surveyId)
-        .collection('results').doc('public').get();
-      
-      if (resultsDoc.exists) {
-        publicResults = resultsDoc.data() as PublicResultsDocument;
-      }
-    }
-    
-    // Get answers if available (for authorized users)
-    let answers: AnswersDocument | undefined;
-    if (survey.flags.hasResults) {
-      const answersDoc = await db.collection('surveys').doc(surveyId)
-        .collection('answers').doc('current').get();
-      
-      if (answersDoc.exists) {
-        answers = answersDoc.data() as AnswersDocument;
-      }
-    }
-    
-    // Get user details if available (T1 surveys only, non-sensitive fields)
-    let userDetails: Partial<PrivateUserDetailsDocument> | undefined;
-    if (survey.flags.hasExpandedAccess) {
-      const userDetailsDoc = await db.collection('surveys').doc(surveyId)
-        .collection('private').doc('userDetails').get();
-      
-      if (userDetailsDoc.exists) {
-        const fullUserDetails = userDetailsDoc.data() as PrivateUserDetailsDocument;
-        // Only return non-sensitive fields
-        userDetails = {
-          emailDomain: fullUserDetails.emailDomain,
-          createdAt: fullUserDetails.createdAt,
-          consentAcceptedAt: fullUserDetails.consentAcceptedAt,
-          policyVersion: fullUserDetails.policyVersion,
-        };
-      }
-    }
-    
-    // Track retrieval event
-    const analyticsEvent: Record<string, unknown> = {
-      event: 'results_retrieved',
-      timestamp: new Date().toISOString(),
-      serverTimestamp: new Date(),
-      surveyId,
-      language: survey.language,
-      surveyVersion: survey.surveyVersion,
-      hasUserDetails: survey.flags.hasExpandedAccess,
-      companySize: survey.companyDetails.companySize,
-      sector: survey.companyDetails.sector,
-      region: survey.companyDetails.region,
-    };
-    
-    // Only add optional fields if they have values
-    if (userDetails?.emailDomain) {
-      analyticsEvent.emailDomain = userDetails.emailDomain;
-    }
-    
-    const userAgent = request.headers.get('user-agent');
-    if (userAgent) {
-      analyticsEvent.userAgent = userAgent;
-    }
-    
-    await db.collection('analytics_events').add(analyticsEvent);
-    
-    // Build response
-    const response: SurveyResultsResponse = {
+
+    const publicResults = row.scores;
+    const answers = row.answers ? { answers: row.answers } : undefined;
+
+    // Kun ikke-sensitive kontaktfelter returneres — aldri e-post eller navn.
+    const userDetails: PublicUserDetails | undefined = row.upgraded_at
+      ? {
+          emailDomain: row.email_domain ?? '',
+          createdAt: row.upgraded_at.toISOString(),
+          ...(row.consent_accepted_at
+            ? { consentAcceptedAt: row.consent_accepted_at.toISOString() }
+            : {}),
+          ...(row.policy_version ? { policyVersion: row.policy_version } : {}),
+        }
+      : undefined;
+
+    const response = {
       survey,
-      results: publicResults!,
-      answers: answers,
-      userDetails: userDetails,
+      results: publicResults,
+      answers,
+      userDetails,
       hasExpandedAccess: survey.flags.hasExpandedAccess,
     };
-    
+
     // If survey doesn't have results yet, return limited data
-    if (!survey.flags.hasResults || !publicResults) {
+    if (!publicResults) {
       return NextResponse.json(
         { 
           success: true, 

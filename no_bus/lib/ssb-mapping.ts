@@ -58,6 +58,16 @@ export function mapSectorToNaceCodes(sector: string): string[] {
 }
 
 /**
+ * Fylkeskoder skrives ulikt av SSB avhengig av tabell — 'NO-03', '03' og 'NO03'
+ * forekommer alle. Returnerer variantene i prioritert rekkefølge slik at både
+ * API-klienten og transformeren kan slå opp likt.
+ */
+export function regionCodeVariants(region: string): string[] {
+  const compact = region.replace(/^NO-?/, '');
+  return Array.from(new Set([region, compact, `NO-${compact}`, `NO${compact}`]));
+}
+
+/**
  * Sjekk om en sektor har SSB ICT-bruk-dekning (full eller partial).
  * Brukes f.eks. av extract-scriptet for å filtrere ut sektorer som
  * ikke kan benchmarkes mot SSB.

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Digital Maturity Assessment (DMSA)** - A comprehensive self-assessment platform for SME digital transformation readiness based on the EU/JRC framework. The app delivers an 11-question assessment across 6 digital maturity dimensions with real-time scoring, visualization, and Firebase-backed persistence.
+**Digital Maturity Assessment (DMSA)** - A comprehensive self-assessment platform for SME digital transformation readiness based on the EU/JRC framework. The app delivers an 11-question assessment across 6 digital maturity dimensions with real-time scoring, visualization, and Postgres-backed persistence.
 
 **Production**: https://digital-modenhet.rastla.us
 
@@ -16,16 +16,14 @@ npm run dev          # Start dev server with Turbopack (http://localhost:3000)
 npm run build        # Build for production with Turbopack
 npm run start        # Start production server
 npm run lint         # Run ESLint
+npm run typecheck    # tsc --noEmit
+
+# Database
+npm run db:migrate   # Apply db/schema.sql to DATABASE_URL (idempotent)
+vercel env pull .env.local   # Fetch DATABASE_URL and other secrets
 
 # Testing
-npm test             # Run Jest unit tests
-npm run test:watch   # Watch mode for tests
-npm run test:e2e     # Run Playwright E2E tests
-
-# Firebase (from scripts/)
-node scripts/test-firebase-connection.js    # Test Firebase connectivity
-node scripts/create-test-survey.js          # Generate test survey data
-node scripts/test-api.js                    # Test API endpoints
+node scripts/test-api.js     # Smoke-test the API endpoints against a running dev server
 ```
 
 ## Architecture Overview
@@ -34,7 +32,7 @@ node scripts/test-api.js                    # Test API endpoints
 - **Framework**: Next.js 15 App Router + TypeScript (strict mode)
 - **State**: Zustand with subscribeWithSelector middleware
 - **UI**: shadcn/ui + TailwindCSS 4 + Radix UI primitives
-- **Backend**: Firebase (Storage for survey JSON, Firestore for metadata)
+- **Backend**: Neon Postgres via `postgres` (postgres.js), accessed only from API routes
 - **Charts**: Recharts for radar visualizations
 - **i18n**: react-i18next (Norwegian primary, English planned)
 - **PDF**: @react-pdf/renderer for export
@@ -48,8 +46,8 @@ The assessment follows a linear progression managed by Zustand store (`store/ass
 2. Answers auto-saved to localStorage on change
 3. Real-time validation via `validateAnswers()` in `lib/scoring.ts`
 4. Completion triggers score calculation via `computeDimensionScores()`
-5. Results saved to Firebase Storage as JSON with unique 10-char ID
-6. Metadata indexed in Firestore for retrieval
+5. Results POSTed to `/api/surveys/{id}/complete` with the retrieval token
+6. Stored as one row in `surveys`, keyed by a unique 10-char ID
 
 **Scoring System** (`lib/scoring.ts`):
 - Question scores: 0-10 scale (type-specific algorithms)
@@ -74,11 +72,13 @@ app/
     ├── surveys/route.ts      # Survey CRUD operations
     └── dma/results/route.ts  # Results retrieval API
 
+db/
+└── schema.sql                # The whole database: two tables
+
 lib/
 ├── scoring.ts                # Question/dimension scoring algorithms
-├── survey-api.ts             # Survey session & Firebase integration
-├── firebase.ts               # Firebase client config
-├── firebase-admin.ts         # Server-side Firebase Admin SDK
+├── survey-api.ts             # Survey session & client-side API calls
+├── db.ts                     # Postgres client + every query in the app
 └── i18n.ts                   # i18next configuration
 
 store/
@@ -86,7 +86,7 @@ store/
 
 types/
 ├── assessment.ts             # Question/Answer/Dimension type definitions
-└── firestore-schema.ts       # Firebase data structures
+└── survey.ts                 # API request/response shapes
 
 components/assessment/
 ├── QuestionRenderer.tsx      # Type-based question component dispatcher
@@ -97,38 +97,36 @@ components/assessment/
 └── *Table.tsx                # Table variants for batch input
 ```
 
-## Firebase Integration
+## Database
 
 ### Environment Variables
-Required in `.env.local` and Vercel:
-
-**Client-side (NEXT_PUBLIC_* prefix)**:
+Server-side only — the browser never talks to the database:
 ```bash
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
+DATABASE_URL=        # Injected by the Neon integration in all environments
+DMSA_TOKEN_SALT=     # Salt for retrieval-token and magic-link hashing
+RESEND_API_KEY=      # Transactional email
 ```
 
-**Server-side (Admin SDK - required for API routes)**:
-```bash
-FIREBASE_PROJECT_ID=
-FIREBASE_CLIENT_EMAIL=
-FIREBASE_PRIVATE_KEY=
-DMSA_TOKEN_SALT=
-```
+Pull them locally with `vercel env pull .env.local`.
 
-**IMPORTANT**: Both client and server-side variables must be configured in Vercel production. Use `scripts/setup-vercel-env.sh` or manually add via `vercel env add`.
+### Schema
+Two tables, defined in `db/schema.sql`:
 
-### Data Storage Pattern
-- **Storage**: Survey JSON files at `/surveys/{uniqueId}.json`
-- **Firestore**: Metadata collection `surveys` with survey IDs, timestamps, scores
-- **No Authentication**: Public access with ID-based retrieval (survey IDs are unguessable 10-char alphanumeric)
+- **`surveys`** — one row per assessment. Company details, retrieval token hash,
+  `scores` and `answers` as `jsonb`, and contact fields set on T0→T1 upgrade.
+- **`magic_links`** — token hash, email hash, expiry, usage counters.
 
-### Storage Rules
-Configured in `storage.rules` - allows read/write to `/surveys/` and `/test/` paths.
+Lifecycle state is **derived, never stored**: `T0`/`T1` is `upgraded_at is null`,
+`isCompleted` is `completed_at is not null`, `hasResults` is `scores is not null`.
+`lib/db.ts:toSurveyDocument()` reassembles the nested shape the frontend expects,
+so API responses are unchanged from the Firestore era.
+
+### Access Pattern
+- All queries live in `lib/db.ts`. API routes must not write SQL directly.
+- No authentication system: access is by unguessable 10-char survey ID plus a
+  256-bit retrieval token, verified against a salted SHA-256 hash.
+- `lib/db.ts` connects lazily on first query, so `next build` succeeds without
+  `DATABASE_URL`.
 
 ## Assessment Framework
 
@@ -169,15 +167,12 @@ npm run dev  # Terminal 1
 npm run test:e2e  # Terminal 2
 ```
 
-### Testing Firebase Integration
+### Testing the Database Integration
 ```bash
-# Test connection and environment
-node scripts/test-firebase-connection.js
+# Apply the schema (idempotent)
+npm run db:migrate
 
-# Create sample survey
-node scripts/create-test-survey.js
-
-# Test production API
+# Smoke-test the API endpoints against a running dev server
 node scripts/test-api.js
 ```
 
@@ -186,16 +181,15 @@ node scripts/test-api.js
 # Deploy to Vercel (requires Vercel CLI)
 vercel --prod
 
-# Deploy Firebase rules only
-firebase deploy --only storage
-firebase deploy --only firestore
+# Schema changes: edit db/schema.sql, then
+DATABASE_URL=<production-url> npm run db:migrate
 ```
 
 ### Type Checking
 TypeScript runs in strict mode. Common type locations:
 - Question/Answer types: `types/assessment.ts`
 - Store types: `store/assessment.ts` (inline with Zustand create)
-- API types: `types/firestore-schema.ts`
+- Database row and API types: `lib/db.ts` and `types/survey.ts`
 
 Path aliases use `@/*` for root imports (configured in `tsconfig.json`).
 
@@ -204,7 +198,7 @@ Path aliases use `@/*` for root imports (configured in `tsconfig.json`).
 ### State Persistence
 - **Answers**: Auto-saved to localStorage on change via `lib/persistence.ts`
 - **Session**: Survey session stored in Zustand + localStorage
-- **Firebase**: Final results saved on completion to Storage + Firestore
+- **Database**: Final results POSTed to `/api/surveys/{id}/complete` on completion
 
 ### Scoring Algorithm
 Each question type has dedicated scoring function in `lib/scoring.ts`:
@@ -229,23 +223,25 @@ Special cases:
 - Provider wraps app in `components/providers/I18nProvider.tsx`
 - English translation planned but not yet implemented
 
-## Firebase Admin SDK Usage
+## Database Access
 
-When working with server-side Firebase operations (API routes):
-- Use `lib/firebase-admin.ts` for Admin SDK initialization
-- Admin SDK has elevated permissions compared to client SDK
-- Used in `app/api/surveys/` routes for server-side operations
-- Service account credentials managed via environment variables
+- Every query lives in `lib/db.ts`. API routes call its functions; they do not
+  write SQL. That keeps the schema's blast radius to one file.
+- `prepare: false` is required — Neon's pooler runs PgBouncer in transaction
+  mode, which does not support prepared statements.
+- Guards that used to be a read followed by a write (already completed? already
+  upgraded?) are now part of the `UPDATE ... WHERE ... RETURNING`, so concurrent
+  requests cannot both succeed. A `null` return means the guard rejected it.
 
 ## Notable Gotchas
 
 1. **Turbopack**: Build uses `--turbopack` flag in package.json scripts
 2. **i18next SSR**: Must use `I18nProvider` client component to avoid hydration mismatches
 3. **RadioGroup Warnings**: Ensure all radio groups have default values to avoid controlled/uncontrolled warnings
-4. **Firebase Storage URLs**: Use `getDownloadURL()` not direct bucket paths
+4. **Derived state**: `state`, `isCompleted`, `hasResults` and `hasExpandedAccess` are computed from timestamps in `toSurveyDocument()`. Never add them as columns — the Firestore schema stored them redundantly and they drifted out of sync with reality.
 5. **Question IDs**: Must be stable across versions (used as keys in answers map)
 6. **Zustand Selectors**: Use `subscribeWithSelector` middleware for computed getters
-7. **Firebase Admin SDK**: API routes (`/api/surveys`) require server-side env vars (`FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`). If surveys fail to create with 500 error, check Vercel env variables include both client and admin credentials.
+7. **Lazy DB connection**: `lib/db.ts` exports `sql` as a Proxy that connects on first query. Do not replace it with a top-level `postgres(...)` call — that breaks `next build` when `DATABASE_URL` is absent.
 
 ## Performance Optimizations
 
@@ -258,9 +254,12 @@ When working with server-side Firebase operations (API routes):
 
 - No authentication system (public assessment)
 - Survey IDs are cryptographically random 10-char strings (unguessable)
-- Firebase rules allow public read/write to `/surveys/` path
-- Environment variables must be prefixed `NEXT_PUBLIC_` for client access
-- No sensitive data collected (optional company details only)
+- The browser has no database credentials — every read and write goes through an
+  API route, so there are no security rules to get wrong
+- Retrieval tokens and magic-link tokens are stored only as salted SHA-256
+  hashes; the plaintext is returned to the user exactly once
+- Email addresses are stored alongside a SHA-256 `email_hash` used for lookups,
+  so the magic-link flow never compares addresses in cleartext
 
 ---
 

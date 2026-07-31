@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createMagicLink } from '@/lib/magic-link';
-import { getSurveyCountForEmail } from '@/lib/email-survey-mapping';
+import { countSurveysByEmail } from '@/lib/db';
 import { sendMagicLinkEmail } from '@/lib/email-service';
 import { z } from 'zod';
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email has any surveys
-    const surveyCount = await getSurveyCountForEmail(email);
+    const surveyCount = await countSurveysByEmail(email);
 
     if (surveyCount === 0) {
       return NextResponse.json(
